@@ -1,1 +1,1 @@
-tests der einzelnen Komponenten in Modelsim
+Tests der einzelnen Komponenten in Modelsim
