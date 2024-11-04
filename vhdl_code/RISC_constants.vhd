@@ -4,7 +4,7 @@
 -- 
 -- Create Date: 03.11.2024 11:20:17
 -- Design Name: 
--- Module Name: ISA - Behavioral
+-- Module Name: Constants Package
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
