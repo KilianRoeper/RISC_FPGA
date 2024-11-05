@@ -99,14 +99,15 @@ process (clk_in, enable_in)
           end if;
           s_branch_enable <= '0';
           
-        -- SW (store word)
+        -- SW (store word of regC into address of regB)
         when OPCODE_SW =>
             s_result <= reg_C_data_in;
             s_branch_enable <= '0';
             
-        -- SW (store word)   -- idea for an implementation? needs to jump to memory address of register B
+        -- LW (load word at address of regB into regA) 
         when OPCODE_LW =>
-            
+	    s_result <= reg_B_data_in;
+            s_branch_enable <= '0';
          
         -- CMP (compare) 
         when OPCODE_CMP =>
@@ -168,25 +169,25 @@ process (clk_in, enable_in)
         
         -- BEQ (branch on equal)
         when OPCODE_BEQ =>
-            -- set branch target regardless
-            s_result(15 downto 0) <= reg_C_data_in;
+            -- set branch target regardless for program counter
+            s_result(15 downto 0) <= reg_B_data_in;
         
             -- the condition to jump is based on aluop(0) and dataimm(1 downto 0);
             case (alu_op_in(0) & im_in(1 downto 0)) is
                 when CJF_EQ =>
-                    s_branch_enable <= reg_B_data_in(CMP_BIT_EQ);
+                    s_branch_enable <= reg_C_data_in(CMP_BIT_EQ);
                 when CJF_BZ =>
-                    s_branch_enable <= reg_B_data_in(CMP_BIT_BZ);
+                    s_branch_enable <= reg_C_data_in(CMP_BIT_BZ);
                 when CJF_CZ =>
-                    s_branch_enable <= reg_B_data_in(CMP_BIT_CZ);
+                    s_branch_enable <= reg_c_data_in(CMP_BIT_CZ);
                 when CJF_BNZ =>
-                    s_branch_enable <= not reg_B_data_in(CMP_BIT_BZ);
+                    s_branch_enable <= not reg_C_data_in(CMP_BIT_BZ);
                 when CJF_CNZ =>
-                    s_branch_enable <= not reg_B_data_in(CMP_BIT_CZ);
+                    s_branch_enable <= not reg_C_data_in(CMP_BIT_CZ);
                 when CJF_BGC =>
-                    s_branch_enable <= reg_B_data_in(CMP_BIT_BGC);
+                    s_branch_enable <= reg_C_data_in(CMP_BIT_BGC);
                 when CJF_BLC =>
-                    s_branch_enable <= reg_B_data_in(CMP_BIT_BLC);
+                    s_branch_enable <= reg_C_data_in(CMP_BIT_BLC);
                 when others =>
                     s_branch_enable <= '0';
             end case;     
