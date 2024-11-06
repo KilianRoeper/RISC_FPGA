@@ -34,19 +34,20 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity ALU is
-Port (  clk_in : in  STD_LOGIC;
-        enable_in :  in  STD_LOGIC;
-        regA_write_enable_in : in STD_LOGIC;
-        mem_store_in : in STD_LOGIC;
-        reg_B_data_in :   in STD_LOGIC_VECTOR (15 downto 0);
-        reg_C_data_in :   in STD_LOGIC_VECTOR (15 downto 0);
-        pc_in :      in STD_LOGIC_VECTOR (15 downto 0);
-        im_in : in STD_LOGIC_VECTOR (15 downto 0);
-        alu_op_in :   in STD_LOGIC_VECTOR (4 downto 0);
-        result_out :   out  STD_LOGIC_VECTOR (15 downto 0);
-        branch_enable_out : out std_logic ;
-        regA_write_enable_out : out STD_LOGIC;
-        mem_store_out : out STD_LOGIC
+Port (  clk_in                  : in STD_LOGIC;
+        enable_in               : in STD_LOGIC;
+        regA_write_in           : in STD_LOGIC;
+        store_enable_in         : in STD_LOGIC;
+        reg_B_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
+        reg_C_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
+        pc_in                   : in STD_LOGIC_VECTOR (15 downto 0);
+        im_in                   : in STD_LOGIC_VECTOR (15 downto 0);
+        alu_op_in               : in STD_LOGIC_VECTOR (4 downto 0);
+        
+        result_out              : out STD_LOGIC_VECTOR (15 downto 0);
+        branch_enable_out       : out STD_logic ;
+        regA_write_out          : out STD_LOGIC;
+        store_enable_out        : out STD_LOGIC
        );
 end ALU;
 
@@ -59,7 +60,7 @@ process (clk_in, enable_in)
   begin
     if rising_edge(clk_in) and enable_in = '1' then
       regA_write_enable_out <= regA_write_enable_in;
-      mem_store_out <= mem_store_in;
+      store_enable_out <= store_enable_in;
       case alu_op_in(4 downto 1) is
       
         -- ADD (addition)
