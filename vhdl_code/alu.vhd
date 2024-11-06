@@ -59,7 +59,7 @@ begin
 process (clk_in, enable_in)
   begin
     if rising_edge(clk_in) and enable_in = '1' then
-      regA_write_enable_out <= regA_write_enable_in;
+      regA_write_out <= regA_write_in;
       store_enable_out <= store_enable_in;
       case alu_op_in(4 downto 1) is
       
