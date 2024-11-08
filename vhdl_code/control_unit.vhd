@@ -141,14 +141,14 @@ architecture Behavioral of control_unit is
     signal alu_enable       : STD_LOGIC := '0';
     signal ram_enable       : STD_LOGIC := '0';
     signal regwrite_enable  : STD_LOGIC := '0';
-    signal pc_op_out    : STD_LOGIC_VECTOR(2 downto 0) := "00";
+    signal pc_op_out        : STD_LOGIC_VECTOR(1 downto 0) := "00";
     
     -- Program Counter
     signal pc_out : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     
     -- ram 
     signal ram_data             : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal ram_address              : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal ram_address          : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     signal ram_enable_combined  : STD_LOGIC := '0';
     
     --decoder 
@@ -167,9 +167,9 @@ architecture Behavioral of control_unit is
     signal reg_file_enable_combined : STD_LOGIC := '0';
 
     -- alu
-    signal alu_result_out           : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal alu_result_out       : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     signal alu_regA_write_out   : STD_LOGIC := '0';
-    signal alu_store_enable_out     : STD_LOGIC := '0';
+    signal alu_store_enable_out : STD_LOGIC := '0';
     signal branch_enable_out    : STD_LOGIC := '0';
         
    
