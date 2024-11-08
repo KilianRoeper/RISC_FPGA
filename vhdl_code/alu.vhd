@@ -102,12 +102,12 @@ process (clk_in, enable_in)
           
         -- SW (store word of regC into address of regB)
         when OPCODE_SW =>
-            s_result <= reg_C_data_in;
+            s_result <= "00" & reg_C_data_in;
             s_branch_enable <= '0';
             
         -- LW (load word at address of regB into regA) 
         when OPCODE_LW =>
-	    s_result <= reg_B_data_in;
+	    s_result <= "00" & reg_B_data_in;
             s_branch_enable <= '0';
          
         -- CMP (compare) 
