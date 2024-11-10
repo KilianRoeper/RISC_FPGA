@@ -74,10 +74,8 @@ architecture Behavioral of control_unit is
           enable_in         : in STD_LOGIC; 
           instruction_in    : in STD_LOGIC_VECTOR (15 downto 0);
           
-          store_enable_out  : out STD_LOGIC;
           alu_op_out        : out STD_LOGIC_VECTOR (4 downto 0);
           im_data_out       : out STD_LOGIC_VECTOR (15 downto 0);
-          regA_write_out    : out STD_LOGIC;
           regA_select_out   : out STD_LOGIC_VECTOR (2 downto 0);
           regB_select_out   : out STD_LOGIC_VECTOR (2 downto 0);
           regC_select_out   : out STD_LOGIC_VECTOR (2 downto 0)  
