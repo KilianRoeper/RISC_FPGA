@@ -131,7 +131,6 @@ architecture Behavioral of control_unit is
     -- CPU signals/ constants
     constant clk_period : time := 10 ns;
     signal cpu_reset    : STD_LOGIC := '0';
-    signal cpu_clock : STD_LOGIC := '0'; 
       
     -- Control Unit
     signal fetch_enable         : STD_LOGIC := '0';
