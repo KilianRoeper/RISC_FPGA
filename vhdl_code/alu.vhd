@@ -20,7 +20,6 @@
 
 
 library IEEE;
-library work;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.RISC_constants.ALL;
 
@@ -33,11 +32,9 @@ use IEEE.NUMERIC_STD.ALL;
 --library UNISIM;
 --use UNISIM.VComponents.all;
 
-entity ALU is
+entity alu is
 Port (  clk_in                  : in STD_LOGIC;
         enable_in               : in STD_LOGIC;
-        regA_write_in           : in STD_LOGIC;
-        store_enable_in         : in STD_LOGIC;
         reg_B_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
         reg_C_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
         pc_in                   : in STD_LOGIC_VECTOR (15 downto 0);
@@ -46,12 +43,11 @@ Port (  clk_in                  : in STD_LOGIC;
         
         result_out              : out STD_LOGIC_VECTOR (15 downto 0);
         branch_enable_out       : out STD_logic ;
-        regA_write_out          : out STD_LOGIC;
         store_enable_out        : out STD_LOGIC
        );
-end ALU;
+end alu;
 
-architecture Behavioral of ALU is
+architecture Behavioral of alu is
     -- 's_' means storing 
     signal s_result : STD_LOGIC_VECTOR(17 downto 0) := (others => '0');
     signal s_branch_enable : STD_LOGIC := '0';
@@ -59,8 +55,7 @@ begin
 process (clk_in, enable_in)
   begin
     if rising_edge(clk_in) and enable_in = '1' then
-      regA_write_out <= regA_write_in;
-      store_enable_out <= store_enable_in;
+
       case alu_op_in(4 downto 1) is
       
         -- ADD (addition)
