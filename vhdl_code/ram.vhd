@@ -22,6 +22,9 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+library work;
+use work.RISC_constants.ALL;
+
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -33,6 +36,9 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity ram is
+generic (
+        ram_content : ram_type := (others => (others => '0'))
+        );
 Port (  clk_in           : in STD_LOGIC;
         write_enable_in  : in STD_LOGIC;
         enable_in        : in STD_LOGIC;
@@ -44,14 +50,14 @@ Port (  clk_in           : in STD_LOGIC;
 end ram;
 
 architecture Behavioral of ram is
-   type ram_type is array (0 to 31) of std_logic_vector(15 downto 0);   -- so far 32 addresses in RAM (64 bytes)
-   signal ram: ram_type := (others => X"0000");
+   signal ram: ram_type := ram_content;
+   
 begin
 process (clk_in)
 	begin
 		if rising_edge(clk_in) and enable_in = '1' then
 			if (write_enable_in = '1') then
-				ram(to_integer(unsigned(addr_in(5 downto 0)))) <= data_in;
+				ram(to_integer(unsigned(addr_in(4 downto 0)))) <= data_in;
 			else
 				data_out <= ram(to_integer(unsigned(addr_in(4 downto 0))));
 			end if;
