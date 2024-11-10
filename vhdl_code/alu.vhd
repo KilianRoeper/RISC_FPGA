@@ -42,8 +42,7 @@ Port (  clk_in                  : in STD_LOGIC;
         alu_op_in               : in STD_LOGIC_VECTOR (4 downto 0);
         
         result_out              : out STD_LOGIC_VECTOR (15 downto 0);
-        branch_enable_out       : out STD_logic ;
-        store_enable_out        : out STD_LOGIC
+        branch_enable_out       : out STD_logic
        );
 end alu;
 
