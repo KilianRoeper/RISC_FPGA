@@ -62,24 +62,6 @@ begin
         regC_select_out <= instruction_in(4 downto 2);
         im_data_out <= instruction_in(7 downto 0) & instruction_in(7 downto 0);
         alu_op_out <= instruction_in(15 downto 12) & instruction_in(8);
-        
-        case instruction_in(15 downto 12) is
-        when OPCODE_SW =>
-          regA_write_out <= '0';
-          store_enable_out <= '1';
-           
-        when OPCODE_BEQ => 	
-          regA_write_out <= '0';
-          store_enable_out <= '0';
-          
-        when OPCODE_B => 	
-          regA_write_out <= '0';
-          store_enable_out <= '0';
-          
-        when others =>
-          regA_write_out <= '1';
-          store_enable_out <= '0';
-      end case;
     end if;
   end process;
 end Behavioral;
