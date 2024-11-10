@@ -74,6 +74,24 @@ package RISC_constants is
     constant r7 : std_logic_vector(2 downto 0):= "111";
     
     -- types
+    type ram_type is array (0 to 31) of std_logic_vector(15 downto 0);
+
+    -- program in RAM
+    constant test_ram_content : ram_type := (
+        -- testing loading and adding 
+        OPCODE_LI & r0 & "0" & X"EF",                       -- X"40EF"
+        OPCODE_LI & r1 & "1" & X"12",                       -- X"4312"
+        OPCODE_ADD & r2 & "0" & r0 & r1 & "00",             -- X"0404"
+        
+        -- testing storing a value from register into RAM
+        OPCODE_LI & r3 & "1" & X"1F",                       -- X"471F"
+        OPCODE_SW & "0000" & r3 & r2 & "00",                -- X"5068"
+        
+        -- testing if value was actually stored at that address in RAM
+        OPCODE_LW & r4 & "0" & r3 & "00000",                -- X"6860"
+        
+        others => X"0000"
+    );
     
     -- functions
     -- function my_function(x : integer) return integer;
