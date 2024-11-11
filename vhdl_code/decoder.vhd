@@ -42,7 +42,7 @@ Port (  clk_in            : in STD_LOGIC;
         instruction_in    : in STD_LOGIC_VECTOR (15 downto 0);
         
         alu_op_out        : out STD_LOGIC_VECTOR (4 downto 0);
-        im_data_out       : out STD_LOGIC_VECTOR (15 downto 0);
+        im_data_out       : out STD_LOGIC_VECTOR (7 downto 0);
         regA_select_out   : out STD_LOGIC_VECTOR (2 downto 0);
         regB_select_out   : out STD_LOGIC_VECTOR (2 downto 0);
         regC_select_out   : out STD_LOGIC_VECTOR (2 downto 0)  
@@ -52,13 +52,13 @@ end decoder;
 architecture Behavioral of decoder is
 
 begin
-  process (clk_in)
+  process (clk_in, enable_in)
   begin
     if rising_edge(clk_in) and enable_in = '1' then
         regA_select_out <= instruction_in(11 downto 9);
         regB_select_out <= instruction_in(7 downto 5);
         regC_select_out <= instruction_in(4 downto 2);
-        im_data_out <= instruction_in(7 downto 0) & instruction_in(7 downto 0);
+        im_data_out <= instruction_in(7 downto 0);
         alu_op_out <= instruction_in(15 downto 12) & instruction_in(8);
     end if;
   end process;
