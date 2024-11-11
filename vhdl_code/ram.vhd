@@ -43,7 +43,7 @@ Port (  clk_in           : in STD_LOGIC;
         write_enable_in  : in STD_LOGIC;
         enable_in        : in STD_LOGIC;
         data_in          : in STD_LOGIC_VECTOR (15 downto 0);
-        addr_in          : in STD_LOGIC_VECTOR (15 downto 0);
+        addr_in          : in STD_LOGIC_VECTOR (4 downto 0);
         
         data_out         : out STD_LOGIC_VECTOR (15 downto 0)
        );
@@ -53,7 +53,7 @@ architecture Behavioral of ram is
    signal ram: ram_type := ram_content;
    
 begin
-process (clk_in)
+process (clk_in, enable_in)
 	begin
 		if rising_edge(clk_in) and enable_in = '1' then
 			if (write_enable_in = '1') then
