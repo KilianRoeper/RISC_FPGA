@@ -37,8 +37,7 @@ Port (  clk_in                  : in STD_LOGIC;
         enable_in               : in STD_LOGIC;
         reg_B_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
         reg_C_data_in           : in STD_LOGIC_VECTOR (15 downto 0);
-        pc_in                   : in STD_LOGIC_VECTOR (15 downto 0);
-        im_in                   : in STD_LOGIC_VECTOR (15 downto 0);
+        im_in                   : in STD_LOGIC_VECTOR (7 downto 0);
         alu_op_in               : in STD_LOGIC_VECTOR (4 downto 0);
         
         result_out              : out STD_LOGIC_VECTOR (15 downto 0);
@@ -88,9 +87,9 @@ process (clk_in, enable_in)
         -- LI (load immideate)  
         when OPCODE_LI =>
           if alu_op_in(0) = '0' then
-            s_result(15 downto 0) <= im_in(7 downto 0) & X"00";
+            s_result(15 downto 0) <= im_in & X"00";
           else
-            s_result(15 downto 0) <= X"00" & im_in(7 downto 0);
+            s_result(15 downto 0) <= X"00" & im_in;
           end if;
           s_branch_enable <= '0';
           
@@ -199,7 +198,7 @@ process (clk_in, enable_in)
             
         -- B (branch)    
         when OPCODE_B =>
-            s_result(15 downto 0) <= X"00" &  im_in(7 downto 0);
+            s_result(15 downto 0) <= X"00" &  im_in;
             s_branch_enable <= '1';
         when others =>
         s_result <= "00" & X"FEFE";
