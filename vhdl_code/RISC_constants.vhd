@@ -60,7 +60,6 @@ package RISC_constants is
     -- PC unit opcodes
     constant PC_OP_NOP      : std_logic_vector(1 downto 0):= "00";
     constant PC_OP_INC      : std_logic_vector(1 downto 0):= "01";
-    constant PC_OP_ASSIGN   : std_logic_vector(1 downto 0):= "10";
     constant PC_OP_RESET    : std_logic_vector(1 downto 0):= "11";
     
     -- registers 
@@ -77,7 +76,7 @@ package RISC_constants is
     type ram_type is array (0 to 31) of std_logic_vector(15 downto 0);
 
     -- program in RAM
-    constant test_ram_content : ram_type := (
+    constant test_ram_content1 : ram_type := (
         -- testing loading and adding 
         OPCODE_LI & r0 & "0" & X"EF",                       -- X"40EF"
         OPCODE_LI & r1 & "1" & X"12",                       -- X"4312"
@@ -92,6 +91,20 @@ package RISC_constants is
         
         others => X"0000"
     );
+    
+    constant test_ram_content2 : ram_type := (
+        OPCODE_LI & r0 & "1" & X"01",               -- X"4101"
+        OPCODE_LI & r1 & "1" & X"01",               -- X"4101"
+        OPCODE_LI & r2 & "1" & X"18",               -- X"4118"
+        
+        OPCODE_SW & "0000" & r2 & r0 & "00",        -- X"5040"
+        OPCODE_ADD & r0 & "0" & r0 & r1 & "00",     -- X"0004"
+        OPCODE_B & "0000" & X"03",                  -- X"8003"
+        others => X"0000"                       
+    );
+    
+    -- functions
+    -- function my_function(x : integer) return integer;
     
     -- functions
     -- function my_function(x : integer) return integer;
