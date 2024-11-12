@@ -23,6 +23,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 library work;
 use work.RISC_constants.all;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -35,11 +36,7 @@ use work.RISC_constants.all;
 
 entity control_unit is
 Port (  
-        cpu_clock : in STD_LOGIC;  
-        led2 : out std_logic;
-        led3 : out std_logic;
-        led4 : out std_logic;
-        led5 : out std_logic
+        cpu_clock : in STD_LOGIC
     );
 end control_unit; 
 
@@ -52,6 +49,7 @@ architecture Behavioral of control_unit is
     Port ( clk_in   : in STD_LOGIC;
            pc_op_in : in STD_LOGIC_VECTOR (1 downto 0);
            pc_in    : in STD_LOGIC_VECTOR (15 downto 0);
+           branch_in   : in STD_LOGIC;
            
            pc_out   : out STD_LOGIC_VECTOR (15 downto 0) 
     );
@@ -169,16 +167,6 @@ architecture Behavioral of control_unit is
     signal alu_result_out           : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     signal branch_enable_out        : STD_LOGIC := '0';
         
-    signal led2_state : STD_LOGIC := '0';
-    signal led3_state : STD_LOGIC := '0';
-    signal led4_state : STD_LOGIC := '0';
-    signal led5_state : STD_LOGIC := '0';
-    
-    signal counter2 : integer := 0;
-    signal counter3 : integer := 0;
-    signal counter4 : integer := 0; 
-    signal divider : integer := 1000000;
-    
 begin
 
 -- port mappings  
@@ -188,6 +176,7 @@ begin
         clk_in      => cpu_clock,
         pc_op_in    => pc_op_out,
         pc_in       => alu_result_out,
+        branch_in   => branch_enable_out,
         
         pc_out      => pc_out
     );
@@ -195,7 +184,7 @@ begin
     -- ram port mappings 
     cpu_ram : ram 
     GENERIC MAP ( 
-        ram_content => test_ram_content
+        ram_content => test_ram_content2
     ) 
     PORT MAP (
         clk_in          => cpu_clock,
@@ -247,37 +236,7 @@ begin
         branch_enable_out       => branch_enable_out
      );
      
-    process(cpu_clock, fetch_enable, decode_enable, regread_enable)
-    begin
-        if rising_edge(cpu_clock) then
-            
-            counter2 <= counter2 + 1;
-            counter3 <= counter3 + 1;
-            counter4 <= counter4 + 1;
-            
-            if fetch_enable = '1' then
-                if (counter2 = divider) then
-                    counter2 <= 0;
-                    led2_state <= not led2_state;
-                end if;
-            end if;
-            
-            if decode_enable = '1' then
-                if (counter3 = divider) then
-                    counter3 <= 0;
-                    led3_state <= not led3_state;
-                end if;
-            end if;
-            
-            if regread_enable = '1' then
-                if (counter4 = divider) then
-                    counter4 <= 0;
-                    led4_state <= not led4_state;
-                end if;
-            end if;
-        end if;
-    end process;
-        
+    
 
     -- core clock process to pulse the entire computer 
     process(cpu_clock, cpu_reset) 
@@ -304,11 +263,7 @@ begin
             regB_data, 
             pc_out, 
             ram_data, 
-            alu_result_out,
-            led2_state,
-            led3_state,
-            led4_state,
-            led5_state)
+            alu_result_out)
         begin
             
             fetch_enable <= s_state(0);
@@ -320,14 +275,11 @@ begin
             reg_file_enable_combined <= s_state(2) or s_state(5);
             ram_enable_combined <= s_state(0) or s_state(4);
             
-            
             -- pc_op selection
             if cpu_reset = '1' then 
                 pc_op_out <= PC_OP_RESET;  -- reset
-            elsif branch_enable_out = '0' and fetch_enable = '1' then
+            elsif fetch_enable = '1' then
                 pc_op_out <= PC_OP_INC;  -- increment
-            elsif branch_enable_out = '1' and alu_enable = '1' then
-                pc_op_out <= PC_OP_ASSIGN;  -- jump
             else
                 pc_op_out <= PC_OP_NOP;  -- nop
             end if;
@@ -336,7 +288,7 @@ begin
             -- pc_or_regfile
             if ((alu_op_out(4 downto 1) = OPCODE_SW or alu_op_out(4 downto 1) = OPCODE_LW) and alu_enable = '1') then
                 ram_address <= regB_data(4 downto 0); 
-            else
+            elsif regwrite_enable = '1' then
                 ram_address <= pc_out(4 downto 0);     
             end if;
                  
@@ -350,12 +302,10 @@ begin
             -- enabling RAM-write for one cycle 
             if alu_op_out(4 downto 1) = OPCODE_SW and alu_enable = '1' then
                 ram_store_enable <= '1';
-                led5_state <= not led5_state;
             elsif alu_op_out(4 downto 1) = OPCODE_SW and ram_enable = '1' then
                 ram_store_enable <= '0';
             else 
                 ram_store_enable <= '0';
-                led5_state <= led5_state;
             end if;
             
             -- enabling regA write for one cycle
@@ -387,11 +337,5 @@ begin
                 cpu_reset <= '0'; 
             end if;
         end if;
-    end process;
-    
-    led2 <= led2_state;
-    led3 <= led3_state;
-    led4 <= led4_state;
-    led5 <= led5_state;
-       
+    end process;       
 end Behavioral;
