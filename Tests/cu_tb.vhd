@@ -23,6 +23,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 library work;
 use work.RISC_constants.all;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -44,6 +45,7 @@ architecture Behavioral of cu_tb is
     Port ( clk_in   : in STD_LOGIC;
            pc_op_in : in STD_LOGIC_VECTOR (1 downto 0);
            pc_in    : in STD_LOGIC_VECTOR (15 downto 0);
+           branch_in   : in STD_LOGIC;
            
            pc_out   : out STD_LOGIC_VECTOR (15 downto 0) 
     );
@@ -125,7 +127,7 @@ architecture Behavioral of cu_tb is
     -- CPU signals/ constants
     constant clk_period : time := 10 ns;
     signal cpu_reset    : STD_LOGIC := '0';
-    signal cpu_clock : STD_LOGIC := '0'; 
+    signal cpu_clock    : STD_LOGIC := '0'; 
       
     -- Control Unit
     signal fetch_enable         : STD_LOGIC := '0';
@@ -162,8 +164,7 @@ architecture Behavioral of cu_tb is
     -- alu
     signal alu_result_out           : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     signal branch_enable_out        : STD_LOGIC := '0';
-        
-   
+           
     
 begin
 -- port mappings
@@ -173,6 +174,7 @@ begin
         clk_in      => cpu_clock,
         pc_op_in    => pc_op_out,
         pc_in       => alu_result_out,
+        branch_in   => branch_enable_out,
         
         pc_out      => pc_out
     );
@@ -180,7 +182,7 @@ begin
     -- ram port mappings 
     cpu_ram : ram 
     GENERIC MAP ( 
-        ram_content => test_ram_content
+        ram_content => test_ram_content2
     ) 
     PORT MAP (
         clk_in          => cpu_clock,
@@ -261,10 +263,8 @@ begin
             -- pc_op selection
             if cpu_reset = '1' then 
                 pc_op_out <= PC_OP_RESET;  -- reset
-            elsif branch_enable_out = '0' and fetch_enable = '1' then
+            elsif fetch_enable = '1' then
                 pc_op_out <= PC_OP_INC;  -- increment
-            elsif branch_enable_out = '1' and alu_enable = '1' then
-                pc_op_out <= PC_OP_ASSIGN;  -- jump
             else
                 pc_op_out <= PC_OP_NOP;  -- nop
             end if;
@@ -273,7 +273,7 @@ begin
             -- pc_or_regfile
             if ((alu_op_out(4 downto 1) = OPCODE_SW or alu_op_out(4 downto 1) = OPCODE_LW) and alu_enable = '1') then
                 ram_address <= regB_data(4 downto 0); 
-            elsif ram_enable = '1' then
+            elsif regwrite_enable = '1' then
                 ram_address <= pc_out(4 downto 0);     
             end if;
                  
