@@ -104,21 +104,21 @@ package RISC_constants is
     );
 
     constant test_ram_content3 : ram_type := (
-        OPCODE_LI & r1 & "1" & X"10",               -- X""
-        OPCODE_LI & r2 & "1" & X"10",               -- X""
-        OPCODE_LI & r3 & "1" & X"01",               -- X""
+        OPCODE_LI & r1 & "1" & X"10",               
+        OPCODE_LI & r2 & "1" & X"10",            
+        OPCODE_LI & r3 & "1" & X"01",            
     
     --sub_label
         OPCODE_LI & r4 & "1" & X"08",               -- load address to jump to into r4
-        OPCODE_SUB & r2 & "0" & r2 & r3 & "00",     -- X""
-        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",           -- X""
-        OPCODE_BEQ & "000" & CJF_BZ(2) & r4 & r0 & CJF_BZ(1 downto 0),     -- X""
+        OPCODE_SUB & r2 & "0" & r2 & r3 & "00",    
+        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",        
+        OPCODE_BEQ & "000" & CJF_BZ(2) & r4 & r0 & CJF_BZ(1 downto 0),  
         OPCODE_B & "0000" & X"04",                  -- branch to SUB of sub_label
     
     --add_label 
         OPCODE_LI & r4 & "1" & X"03",               -- load address to jump to into r4
         OPCODE_ADD & r2 & "0" & r2 & r3 & "00",
-        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",           -- X""
+        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",         
         OPCODE_BEQ & "000" & CJF_EQ(2) & r4 & r0 & CJF_EQ(1 downto 0), 
         OPCODE_B & "0000" & X"09",                  -- branch to ADD of add_label
         others => X"0000"                       
