@@ -98,21 +98,27 @@ begin
                 -- Beispielzustandsänderungen für die Pipeline
                 case sig is
                     when state_fetch =>
+                        sig_reg_write <= '0';
                         sig_fetch <= '1';
                         sig <= state_decode;
                     when state_decode =>
+                        sig_fetch <= '0';
                         sig_decode <= '1';
                         sig <= state_reg_read;
                     when state_reg_read =>
+                        sig_decode <= '0';
                         sig_reg_read <= '1';
                         sig <= state_alu_en;
                     when state_alu_en =>
+                        sig_reg_read <= '0';
                         sig_alu_en <= '1';
                         sig <= state_ram_en;
                     when state_ram_en =>
+                        sig_alu_en <= '0';
                         sig_ram_en <= '1';
                         sig <= state_reg_write;
                     when state_reg_write =>
+                        sig_ram_en <= '0';
                         sig_reg_write <= '1';
                         sig <= state_fetch;  -- Zyklus neu starten
                     when others =>
