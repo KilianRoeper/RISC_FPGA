@@ -3,142 +3,287 @@
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.RISC_constants.all;
 
-entity cu_tb is
-end cu_tb; 
-
-architecture Behavioral of cu_tb is  
-
-    -- Komponenten und ihre Portdeklarationen
-    component ControlUnit
-    Port ( 
-        cpu_clock : in STD_LOGIC;
-        reset     : in STD_LOGIC
+entity ControlUnit is
+Port ( 
+        cpu_clock : in STD_LOGIC := '0';
+        reset     : in STD_LOGIC := '0'
       );
+end ControlUnit;
+
+--Anpassung Dokumentation branch_enable_out in PC
+
+architecture Behavioral of ControlUnit is
+-- Komponenten
+    -- Register_File
+    component register_file
+    Port (  
+            -- Eingänge
+            clk_in              : in STD_LOGIC := '0';
+            enable_in           : in STD_LOGIC := '0';
+            write_enable_in     : in STD_LOGIC := '0';
+            regA_data_in        : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+            regA_select_in      : in STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+            regB_select_in      : in STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+            regC_select_in      : in STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+            
+            -- Ausgänge
+            regB_out            : out STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+            regC_out            : out STD_LOGIC_VECTOR (15 downto 0) := (others => '0')
+          );
+    end component;
+    
+    -- ALU
+    component alu
+    Port (  
+            -- Eingänge
+            clk_in                  : in STD_LOGIC := '0';
+            enable_in               : in STD_LOGIC := '0';
+            regB_data_in            : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+            regC_data_in            : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+            im_in                   : in STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+            alu_op_in               : in STD_LOGIC_VECTOR (4 downto 0) := (others => '0');
+            
+            -- Ausgänge
+            result_out              : out STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+            branch_enable_out       : out STD_logic := '0'
+       );  
+    end component;
+    
+    -- RAM
+    component ram
+    Port (
+            -- Eingänge
+           clk_in           : in STD_LOGIC := '0';
+           write_enable_in  : in STD_LOGIC := '0';
+           enable_in        : in STD_LOGIC := '0';
+           data_in          : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+           addr_in          : in STD_LOGIC_VECTOR (4 downto 0) := (others => '0');
+           
+           -- Ausgänge
+           data_out         : out STD_LOGIC_VECTOR (15 downto 0) := (others => '0')
+       );
     end component;
 
-    -- Pipeline-Zustände und Zustandsvariable
-    type state is (state_fetch, state_decode, state_reg_read, state_alu_en, state_ram_en, state_reg_write);
-    signal sig : state := state_fetch;
-
-    -- Testbench Signale
-    signal cpu_reset               : STD_LOGIC := '0';
-    signal cpu_clock               : STD_LOGIC := '0';
+    -- Program Counter
+    component PC
+    Port ( 
+           -- Eingännge
+           clk_in   : in STD_LOGIC := '0';
+           pc_op_in : in STD_LOGIC_VECTOR (1 downto 0) := (others => '0');
+           pc_in    : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+           branch_in: in STD_LOGIC := '0';
+           
+           -- Ausgänge
+           pc_out   : out STD_LOGIC_VECTOR (15 downto 0) := (others => '0') 
+    );
+    end component;
+            
+    -- Decoder
+    component decoder
+    Port (
+          -- Eingänge
+          clk_in            : in STD_LOGIC := '0';
+          enable_in         : in STD_LOGIC := '0'; 
+          instruction_in    : in STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+          
+          -- Ausgänge
+          alu_op_out        : out STD_LOGIC_VECTOR (4 downto 0) := (others => '0');
+          im_data_out       : out STD_LOGIC_VECTOR (7 downto 0) := (others => '0');
+          regA_select_out   : out STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+          regB_select_out   : out STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+          regC_select_out   : out STD_LOGIC_VECTOR (2 downto 0) := (others => '0')  
+      );
+    end component;
     
-    -- Kontrollsignale für die Simulation
-    signal sig_fetch               : std_logic := '0';
-    signal sig_decode              : std_logic := '0';
-    signal sig_reg_read            : std_logic := '0';
-    signal sig_alu_en              : std_logic := '0';
-    signal sig_ram_en              : std_logic := '0';
-    signal sig_reg_write           : std_logic := '0';
-    signal sig_pc_op_out           : std_logic_vector(1 downto 0) := (others => '0');
-    signal sig_regA_load_enable    : std_logic := '0';
-    signal sig_ram_store_enable    : std_logic := '0';
+-- Signale    
+    -- Pipeline-Zustände
+    type state is (state_fetch, state_decode,state_reg_read, state_alu_en, state_ram_en, state_reg_write);
+    signal sig : state := state_fetch;
+    
+    -- CPU signals/ constants
+    --constant clk_period : time := 10 ns;
+    signal cpu_reset    : STD_LOGIC := '0';
+    
+    -- Control Unit
+    signal sig_fetch             : std_logic := '0';
+    signal sig_decode            : std_logic := '0';
+    signal sig_reg_read          : std_logic := '0';
+    signal sig_alu_en            : std_logic := '0';
+    signal sig_ram_en            : std_logic := '0';
+    signal sig_reg_write         : std_logic := '0';
+    signal sig_pc_op_out         : std_logic_vector(1 downto 0) := (others => '0');
+    signal sig_regA_load_enable  : std_logic := '0';
+    signal sig_ram_store_enable  : std_logic := '0';
     
     -- Register File 
-    signal sig_regB_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regC_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regA_data_in        : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal reg_file_enable_combined : std_logic := '0';
+    signal sig_regB_out                 : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_regC_out                 : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_regA_data_in             : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal reg_file_enable_combined     : std_logic := '0';
     
     -- ALU 
-    signal sig_result_out          : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_branch_enable_out   : STD_LOGIC := '0';
+    signal sig_result_out           : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_branch_enable_out    : STD_LOGIC := '0';
+    signal sig_regA_write_enable_out: STD_LOGIC := '0';
     
     -- RAM 
     signal sig_data_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
-    
-    -- Program Counter
-    signal sig_pc_out              : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0);
+    signal sig_ram_enable_in       : STD_LOGIC := '0';
+        
+    -- PC
+    signal sig_pc_out : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
     
     -- Decoder
-    signal sig_alu_op_out          : STD_LOGIC_VECTOR(4 downto 0) := "00000";
-    signal sig_regA_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_im_data_out         : STD_LOGIC_VECTOR(7 downto 0) := X"00";
-    signal sig_regB_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_regC_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    signal sig_alu_op_out               : STD_LOGIC_VECTOR(4 downto 0) := "00000";
+    signal sig_regA_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    signal sig_im_data_out : STD_LOGIC_VECTOR(7 downto 0) := X"00";
+    signal sig_regA_write_out           : STD_LOGIC := '0';
+    signal sig_regB_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    signal sig_regC_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    
 
 begin
-
-    -- Instanziere die ControlUnit
-    uut: ControlUnit
-    Port map (
-        cpu_clock => cpu_clock,
-        reset     => cpu_reset
+-- Port Mappings
+    -- Register File
+    cpu_register_file : register_file PORT MAP (
+        clk_in          => cpu_clock,
+        enable_in       => reg_file_enable_combined,               -- Aktivierung bei Lese-/Schreiboperationen
+        write_enable_in => sig_regA_write_enable_out,              -- Schreibaktivierung für Register A
+        regA_data_in    => sig_regA_data_in,                       -- Daten für Register A (vom MUX)
+        regA_select_in  => sig_regA_select_out,                    -- Auswahlport für Register A
+        regB_select_in  => sig_regB_select_out,                    -- Auswahlport für Register B
+        regC_select_in  => sig_regC_select_out,                    -- Auswahlport für Register C
+        regB_out        => sig_regB_out,                           -- Ausgang für Register B Daten
+        regC_out        => sig_regC_out                            -- Ausgang für Register C Daten
     );
 
-    -- Prozess zur Steuerung des Taktsignals
-    clk_process : process
-    begin 
-        cpu_clock <= '0';
-        wait for 5 ns;  -- Halbe Taktperiode
-        cpu_clock <= '1';
-        wait for 5 ns;
-    end process; 
+    -- Decoder
+    cpu_decoder : decoder PORT MAP (
+        clk_in           => cpu_clock,
+        enable_in        => sig_decode,
+        instruction_in   => sig_data_out,
+        alu_op_out       => sig_alu_op_out,         -- ALU-Operationscode
+        im_data_out      => sig_im_data_out,        -- Ausgabeport für Immediate-Daten
+        regA_select_out  => sig_regA_select_out,    -- Auswahlport für Register A
+        regB_select_out  => sig_regB_select_out,    -- Auswahlport für Register B
+        regC_select_out  => sig_regC_select_out     -- Auswahlport für Register C
+    );
+    
+    -- ALU
+    cpu_alu : alu PORT MAP (
+        clk_in                => cpu_clock,
+        enable_in             => sig_alu_en,                -- Aktivierung der ALU
+        regB_data_in          => sig_regB_out,              -- Eingangsport für Register B Daten
+        regC_data_in          => sig_regC_out,              -- Eingangsport für Register C Daten
+        im_in                 => sig_im_data_out,           -- Immediate-Daten Eingang
+        alu_op_in             => sig_alu_op_out,            -- ALU-Operationscode
+        result_out            => sig_result_out,            -- ALU Ergebnis Ausgang
+        branch_enable_out     => sig_branch_enable_out      -- Branch-Bedingung Ausgang
+    );
+    
+    -- Program Counter (PC)
+    cpu_pcunit : pc PORT MAP (
+        clk_in      => cpu_clock,
+        pc_op_in    => sig_pc_op_out,
+        pc_in       => sig_result_out,
+        branch_in   => sig_branch_enable_out,
+        pc_out      => sig_pc_out
+    );
+    
+    -- RAM
+    cpu_ram : ram PORT MAP (
+        clk_in              => cpu_clock,   
+        write_enable_in     => sig_ram_store_enable,         -- RAM Schreibaktivierungssignal
+        enable_in           => sig_ram_en,                   -- RAM Aktivierungssignal
+        data_in             => sig_result_out,               -- Daten, die in den RAM geschrieben werden
+        addr_in             => sig_address_in(4 downto 0),   -- Adresseneingang (z.B. vom Program Counter)
+        data_out            => sig_data_out                  -- Daten, die aus dem RAM gelesen werden
+    );
+    
 
-    -- Prozess zur Initialisierung und Steuerung des Reset-Signals
-    stim_proc: process
-    begin        
-        cpu_reset <= '1'; -- setze Reset auf aktiv
-        wait for 50 ns;   -- Warte auf 5 Takte
-        cpu_reset <= '0'; -- Deaktiviere Reset
-        wait;
-    end process;
 
-    -- Hauptprozess für die Simulation der Pipeline-Steuerung
+    -- Prozess zur Steuerung des gesamten Takts
     process(cpu_clock)
     begin
-        if rising_edge(cpu_clock) then 
-            if cpu_reset = '1' then
-                sig <= state_fetch; -- Initialzustand nach Reset
+        if rising_edge(cpu_clock) then
+            if reset = '1' then
+                -- Alle Steuerungssignale zurücksetzen
+                sig_fetch <= '0';
+                sig_decode <= '0';
+                sig_reg_read <= '0';
+                sig_alu_en <= '0';
+                sig_ram_en <= '0';
+                sig_reg_write <= '0';
+                sig_regA_load_enable <= '0';
+                sig_ram_store_enable <= '0';
             else
-                -- Beispielzustandsänderungen für die Pipeline
-                case sig is
-                    when state_fetch =>
-                        sig_reg_write <= '0';
-                        sig_fetch <= '1';
-                        sig <= state_decode;
-                    when state_decode =>
-                        sig_fetch <= '0';
-                        sig_decode <= '1';
-                        sig <= state_reg_read;
-                    when state_reg_read =>
-                        sig_decode <= '0';
-                        sig_reg_read <= '1';
-                        sig <= state_alu_en;
-                    when state_alu_en =>
-                        sig_reg_read <= '0';
-                        sig_alu_en <= '1';
-                        sig <= state_ram_en;
-                    when state_ram_en =>
-                        sig_alu_en <= '0';
-                        sig_ram_en <= '1';
-                        sig <= state_reg_write;
-                    when state_reg_write =>
-                        sig_ram_en <= '0';
-                        sig_reg_write <= '1';
-                        sig <= state_fetch;  -- Zyklus neu starten
-                    when others =>
-                        sig <= state_fetch;
-                end case;
-            end if;
+                -- Zustandsschaltung basierend auf 'sig'
+                if sig = state_fetch then
+                    sig_fetch <= '1';
+                else
+                    sig_fetch <= '0';
+                end if;
+    
+                if sig = state_decode then
+                    sig_decode <= '1';
+                else
+                    sig_decode <= '0';
+                end if;
+    
+                if sig = state_reg_read then
+                    sig_reg_read <= '1';
+                else
+                    sig_reg_read <= '0';
+                end if;
+    
+                if sig = state_alu_en then
+                    sig_alu_en <= '1';
+                else
+                    sig_alu_en <= '0';
+                end if;
+    
+                if sig = state_ram_en then
+                    sig_ram_en <= '1';
+                else
+                    sig_ram_en <= '0';
+                end if;
+    
+                if sig = state_reg_write then
+                    sig_reg_write <= '1';
+                else
+                    sig_reg_write <= '0';
+                end if;
+    
+                -- Kombinierte Steuerungen für Register und RAM
+                reg_file_enable_combined <= sig_reg_read or sig_reg_write;
+                sig_ram_enable_in <= sig_fetch or sig_ram_en;
+    
+                -- Program Counter Steuerung (pc_op)
+                if reset = '1' then
+                    sig_pc_op_out <= "11";  -- Reset
+                elsif sig_reg_write = '1' then
+                    sig_pc_op_out <= "01";  -- Inkrement
+                else
+                    sig_pc_op_out <= "00";  -- Keine Operation (NOP)
+                end if;
+    
+                -- Steuerung des Multiplexers für die Adresseingabe (pc_or_regfile Signal)
+                if sig_ram_store_enable = '1' then
+                    sig_address_in <= sig_address_in(4 downto 0);
+                else
+                    sig_address_in <= sig_pc_out(4 downto 0);     
+                end if;
+    
+                -- Steuerung des Multiplexers für die Datenquelle von regA (ram_or_alu Signal)
+                if sig_regA_load_enable = '1' then
+                    sig_regA_data_in <= sig_data_out;       
+                else 
+                    sig_regA_data_in <= sig_result_out;
+                end if;                          
+    
+            end if;  
         end if;
     end process;
-
-    -- Steuerlogik zur Simulation der Register- und RAM-Operationen
-    process(sig)
-    begin
-        -- Einstellungen für Register File und RAM
-        reg_file_enable_combined <= sig_reg_read or sig_reg_write;
-        if sig = state_ram_en then
-            sig_ram_store_enable <= '1';
-        else
-            sig_ram_store_enable <= '0';
-        end if;
-    end process;
-
 end Behavioral;
-
