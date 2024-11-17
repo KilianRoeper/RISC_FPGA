@@ -171,16 +171,26 @@ begin
         sig_reg_read <= '1';
         sig_reg_write <= '0';
         wait for 10 ns;
+        --assert reg_file_enable_combined = '1' report "reg_file_enable_combined failed for reg_read = 1" severity error;
         
         sig_reg_read <= '0';
         sig_reg_write <= '1';
         wait for 10 ns;
+        --assert reg_file_enable_combined = '1' report "reg_file_enable_combined failed for reg_write = 1" severity error;
         
         sig_reg_read <= '0';
         sig_reg_write <= '0';
-        wait for 10 ns;        
+        wait for 10 ns;
+        --assert reg_file_enable_combined = '0' report "reg_file_enable_combined failed for no activity" severity error;
+        
+        -- Test für sig_ram_store_enable
+        wait for 10 ns;  -- Warte auf den Übergang des Signals in den Zustand state_ram_en
+        -- Hier kannst du testen, ob sig_ram_store_enable korrekt gesetzt wurde
+        --assert sig_ram_store_enable = '1' report "RAM store enable not activated in state_ram_en" severity error;
+        
+        wait for 10 ns;
+        --assert sig_ram_store_enable = '0' report "RAM store enable active in state_fetch" severity error;
         
         wait;
     end process;
 end Behavioral;
-
