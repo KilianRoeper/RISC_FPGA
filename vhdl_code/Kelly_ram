@@ -36,9 +36,9 @@ begin
     begin
         if rising_edge(clk) then
             if rst = '1' then
-                mem <= (others => "0000000000000000");
-            elsif enable = '1' then --Ram ist aktiv wenn 1
-                if write_enable = '1' then --Ram liest wenn 0 und schreibt wenn 1
+                data_out <= (others => '0'); -- nur data_out zurücksetzen, nicht den Speicher
+            elsif enable = '1' then -- RAM ist aktiv, wenn 1
+                if write_enable = '1' then -- RAM liest, wenn 0 und schreibt, wenn 1
                     mem(to_integer(unsigned(addr))) <= data_in;
                 else
                     data_out <= mem(to_integer(unsigned(addr)));
@@ -47,3 +47,4 @@ begin
         end if;
     end process;
 end Behavioral;
+
