@@ -97,34 +97,41 @@ architecture Behavioral of control_unit is
     signal start_tx         : std_logic := '1';   
     
     -- uart buffer
-    signal buffer_data_in       : STD_LOGIC_VECTOR(7 downto 0) := X"46";
-    signal buffer_data_out      : STD_LOGIC_VECTOR(7 downto 0) := X"41";
+    signal buffer_data_in       : STD_LOGIC_VECTOR(7 downto 0) := X"00";
+    signal buffer_data_out      : STD_LOGIC_VECTOR(7 downto 0) := X"00";
     signal buffer_write_enable  : std_logic := '0'; 
     signal buffer_read_enable   : std_logic := '0'; 
+    signal buffer_read_valid    : std_logic := '0'; 
     signal buffer_full          : std_logic := '0'; 
+    signal buffer_full_next     : std_logic := '0'; 
     signal buffer_empty         : std_logic := '1'; 
-    signal read_from_buffer     : integer := 2; 
-    signal wrote_to_buffer     : integer := 2; 
+    signal buffer_empty_next    : std_logic := '1'; 
+    --signal buffer_fill_count  : integer range 16 - 1 downto 0;
+    signal buffer_was_read      : std_logic := '0';
 
         
 begin
 
 -- port mappings  
 
-    buffer_inst : entity work.uart_buffer
+    buffer_inst : entity work.uart_ring_buffer
         GENERIC MAP ( 
-        BUFFER_SIZE => 16,
-        DATA_WIDTH => 8
-        )
+        RAM_DEPTH => 16,
+        RAM_WIDTH => 8 
+        ) 
         port map (
-            clk_in          => cpu_clock,
-     --       reset           => cpu_reset, 
-            data_in         => buffer_data_in,
-            write_enable    => buffer_write_enable,                      
-            data_out        => buffer_data_out,
-            read_enable     => buffer_read_enable,                           
-            buffer_full     => buffer_full,
-            buffer_empty    => buffer_empty
+            clk         => cpu_clock,
+            rst         => cpu_reset, 
+            wr_en       => buffer_write_enable,
+            wr_data     => buffer_data_in,                      
+            rd_en       => buffer_read_enable,
+            rd_valid    => buffer_read_valid,                           
+            rd_data     => buffer_data_out,
+            empty       => buffer_empty,
+            empty_next  => buffer_empty_next,
+            full        => buffer_full,
+            full_next   => buffer_full_next
+           -- fill_count  => buffer_fill_count
         ); 
 
     uart_tx_inst : entity work.uart_tx  
@@ -230,7 +237,8 @@ begin
             ram_data, 
             alu_result_out,
             ram_address,
-            tx_ready)
+            tx_ready,
+            btn0)
         begin
              
             fetch_enable <= s_state(0);
@@ -296,32 +304,25 @@ begin
     begin
         if rising_edge(cpu_clock) then
             -- write for each SW and address 0x0100 as long as buffer is not full
-            if wrote_to_buffer = 2 and alu_op_out(4 downto 1) = OPCODE_SW and ram_address = X"0100" and ram_enable = '1' then           -- and buffer_full = '0' 
-                buffer_data_in <= alu_result_out(7 downto 0);
-                wrote_to_buffer <= wrote_to_buffer - 1;
-            elsif wrote_to_buffer = 1 then 
-                 buffer_write_enable <= '1';
+            if alu_op_out(4 downto 1) = OPCODE_SW and buffer_full_next = '0' and ram_address = X"0100" and ram_enable = '1' then            
+                buffer_write_enable <= '1';
+                buffer_data_in <= alu_result_out(7 downto 0); 
             else 
-                wrote_to_buffer <= 2;
                 buffer_write_enable <= '0';
             end if;
             
-            -- read from buffer if not empty and uart_tx signals ready  
-            if tx_ready = '1' and read_from_buffer = 2 then             -- and buffer_empty = '0' 
+            -- increment read pointer to next location for next read and start tx with read data
+            if buffer_empty = '0' and tx_ready = '1' and buffer_was_read = '0' then 
                 buffer_read_enable <= '1';
-                read_from_buffer <= read_from_buffer - 1;
-                
-            --after reading from buffer, send data to uart_tx 
-            elsif read_from_buffer = 1 and tx_ready = '1' then
-                buffer_read_enable <= '0';
                 start_tx <= '1';
-                read_from_buffer <= read_from_buffer - 1;
-            else
-               start_tx <= '0';
-                read_from_buffer <= 2;
+                buffer_was_read <= '1';
+            else 
+                buffer_read_enable <= '0';
+                start_tx <= '0';
+                buffer_was_read <= '0';
            end if;
         end if;
-    end process;
+    end process; 
     
     
         
