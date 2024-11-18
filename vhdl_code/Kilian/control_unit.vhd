@@ -310,23 +310,17 @@ begin
             else 
                 buffer_write_enable <= '0';
             end if;
-            
-            if tx_ready = '1' then 
-                start_tx <= '1';
-            else 
-                start_tx <= '0';
-            end if;
                        
             -- increment read pointer to next location for next read and start tx with read data
---            if buffer_empty = '0' and tx_ready = '1' and buffer_was_read = '0' then 
---                buffer_read_enable <= '1';
---                start_tx <= '1';
---                buffer_was_read <= '1';
---            else 
---                buffer_read_enable <= '0';
---                start_tx <= '0';
---                buffer_was_read <= '0';
---           end if;
+            if buffer_empty = '0' and tx_ready = '1' and buffer_was_read = '0' then 
+                buffer_read_enable <= '1';
+                start_tx <= '1';
+                buffer_was_read <= '1';
+            else 
+                buffer_read_enable <= '0';
+                start_tx <= '0';
+                buffer_was_read <= '0';
+           end if;
         end if;
     end process; 
     
