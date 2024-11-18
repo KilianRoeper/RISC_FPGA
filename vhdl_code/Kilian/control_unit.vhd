@@ -119,7 +119,7 @@ begin
         RAM_DEPTH => 16,
         RAM_WIDTH => 8 
         ) 
-        port map (
+        PORT MAP (
             clk         => cpu_clock,
             rst         => cpu_reset, 
             wr_en       => buffer_write_enable,
@@ -134,8 +134,7 @@ begin
            -- fill_count  => buffer_fill_count
         ); 
 
-    uart_tx_inst : entity work.uart_tx  
-        port map (
+    uart_tx_inst : entity work.uart_tx PORT MAP (
             clk_in      => cpu_clock, 
             tx_start    => start_tx,
             tx_data     => buffer_data_out,
