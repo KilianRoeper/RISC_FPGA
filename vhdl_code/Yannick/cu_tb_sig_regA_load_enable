@@ -1,0 +1,175 @@
+----------------------------------------------------------------------------------
+-- Created by Yannick Ott
+----------------------------------------------------------------------------------
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use work.RISC_constants.all;
+
+entity cu_tb is
+end cu_tb; 
+
+-- Combined Enable Signale
+-- Entscheidung ob ALU oder RAM in Register
+-- PC or REGB in RAM (MUX)
+
+architecture Behavioral of cu_tb is  
+
+    -- Komponenten und ihre Portdeklarationen
+    component ControlUnit
+    Port ( 
+        cpu_clock : in STD_LOGIC;
+        reset     : in STD_LOGIC
+      );
+    end component;
+
+    -- Pipeline-Zustände und Zustandsvariable
+    type state is (state_fetch, state_decode, state_reg_read, state_alu_en, state_ram_en, state_reg_write);
+    signal sig : state := state_fetch;
+
+    -- Testbench Signale
+    signal cpu_reset               : STD_LOGIC := '0';
+    signal cpu_clock               : STD_LOGIC := '0';
+    
+    -- Kontrollsignale für die Simulation
+    signal sig_fetch               : std_logic := '0';
+    signal sig_decode              : std_logic := '0';
+    signal sig_reg_read            : std_logic := '0';
+    signal sig_alu_en              : std_logic := '0';
+    signal sig_ram_en              : std_logic := '0';
+    signal sig_reg_write           : std_logic := '0';
+    signal sig_pc_op_out           : std_logic_vector(1 downto 0) := (others => '0');
+    signal sig_regA_load_enable    : std_logic := '0';
+    signal sig_ram_store_enable    : std_logic := '0';
+    
+    -- Register File 
+    signal sig_regB_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_regC_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_regA_data_in        : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal reg_file_enable_combined : std_logic := '0';
+    
+    -- ALU 
+    signal sig_result_out          : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_branch_enable_out   : STD_LOGIC := '0';
+    
+    -- RAM 
+    signal sig_data_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+    
+    -- Program Counter
+    signal sig_pc_out              : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
+    
+    -- Decoder
+    signal sig_alu_op_out          : STD_LOGIC_VECTOR(4 downto 0) := "00000";
+    signal sig_regA_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    signal sig_im_data_out         : STD_LOGIC_VECTOR(7 downto 0) := X"00";
+    signal sig_regB_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    signal sig_regC_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
+
+begin
+
+    -- Instanziere die ControlUnit
+    uut: ControlUnit
+    Port map (
+        cpu_clock => cpu_clock,
+        reset     => cpu_reset
+    );
+
+    -- Prozess zur Steuerung des Taktsignals
+    clk_process : process
+    begin 
+        cpu_clock <= '0';
+        wait for 5 ns;  -- Halbe Taktperiode
+        cpu_clock <= '1';
+        wait for 5 ns;
+    end process; 
+
+    -- Prozess zur Initialisierung und Steuerung des Reset-Signals
+    stim_proc: process
+    begin        
+        cpu_reset <= '1'; -- setze Reset auf aktiv
+        wait for 50 ns;   -- Warte auf 5 Takte
+        cpu_reset <= '0'; -- Deaktiviere Reset
+        wait;
+    end process;
+
+    -- Hauptprozess für die Simulation der Pipeline-Steuerung
+    process(cpu_clock)
+    begin
+        if rising_edge(cpu_clock) then 
+            if cpu_reset = '1' then
+                sig <= state_fetch; -- Initialzustand nach Reset
+            else
+                -- Beispielzustandsänderungen für die Pipeline
+                case sig is
+                    when state_fetch =>
+                        sig_fetch <= '1';
+                        sig_decode <= '0';
+                        sig_reg_read <= '0';
+                        sig_alu_en <= '0';
+                        sig_ram_en <= '0';
+                        sig_reg_write <= '0';
+                        sig <= state_decode;
+                    when state_decode =>
+                        sig_fetch <= '0';
+                        sig_decode <= '1';
+                        sig_reg_read <= '0';
+                        sig_alu_en <= '0';
+                        sig_ram_en <= '0';
+                        sig_reg_write <= '0';
+                        sig <= state_reg_read;
+                    when state_reg_read =>
+                        sig_fetch <= '0';
+                        sig_decode <= '0';
+                        sig_reg_read <= '1';
+                        sig_alu_en <= '0';
+                        sig_ram_en <= '0';
+                        sig_reg_write <= '0';
+                        sig <= state_alu_en;
+                    when state_alu_en =>
+                        sig_fetch <= '0';
+                        sig_decode <= '0';
+                        sig_reg_read <= '0';
+                        sig_alu_en <= '1';
+                        sig_ram_en <= '0';
+                        sig_reg_write <= '0';
+                        sig <= state_ram_en;
+                    when state_ram_en =>
+                        sig_fetch <= '0';
+                        sig_decode <= '0';
+                        sig_reg_read <= '0';
+                        sig_alu_en <= '0';
+                        sig_ram_en <= '1';
+                        sig_reg_write <= '0';
+                        sig <= state_reg_write;
+                    when state_reg_write =>
+                        sig_fetch <= '0';
+                        sig_decode <= '0';
+                        sig_reg_read <= '0';
+                        sig_alu_en <= '0';
+                        sig_ram_en <= '0';
+                        sig_reg_write <= '1';
+                        sig <= state_fetch;
+                    when others =>
+                        sig <= state_fetch;
+                end case;
+            end if;
+        end if;
+    end process;
+    
+    -- Signalsteuerung für `sig_regA_load_enable`
+    process(sig, sig_alu_en, sig_ram_en)
+    begin
+        -- Standardwert: deaktiviert
+        sig_regA_load_enable <= '0';
+        
+        -- Aktivierung basierend auf den Steuerbedingungen
+        if sig = state_reg_read then
+            -- Wenn die ALU aktiv ist, lade aus der ALU
+            if sig_alu_en = '1' then
+                sig_regA_load_enable <= '0';  -- ALU lädt, kein RAM-Zugriff
+            elsif sig_ram_en = '1' then
+                sig_regA_load_enable <= '1';  -- RAM lädt
+            end if;
+        end if;
+    end process;
+end Behavioral;
