@@ -1,6 +1,11 @@
 ----------------------------------------------------------------------------------
 -- Created by Yannick Ott
 ----------------------------------------------------------------------------------
+
+-- work-Library work.pc (Import des Programm Counters)
+-- Signale definieren --> Zeigen auf Output des PC
+-- Gleiches für Inputs
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.RISC_constants.all;
