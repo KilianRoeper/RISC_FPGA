@@ -64,18 +64,15 @@ begin
     -- Prozess zur Steuerung des Reset-Signals und Überwachung des Zustands
     stim_proc: process
     begin        
-        -- Initialisiere Reset
         cpu_reset <= '1';
-        wait for 50 ns; -- Halte Reset aktiv für 5 Takte
-        cpu_reset <= '0'; -- Deaktiviere Reset
+        wait for 50 ns; 
+        cpu_reset <= '0'; 
 
-        -- Warte, bis die Zustandsmaschine zwei vollständige Durchläufe abgeschlossen hat
         wait until (sig = state_fetch and cycle_counter = 2);
-        cpu_reset <= '1'; -- Füge Reset hinzu
-        wait for 50 ns;   -- Halte Reset für 5 Takte aktiv
-        cpu_reset <= '0'; -- Deaktiviere Reset
+        cpu_reset <= '1'; 
+        wait for 50 ns;   
+        cpu_reset <= '0'; 
 
-        -- Simulation beendet
         wait;
     end process;
 
@@ -84,10 +81,9 @@ begin
     begin
         if rising_edge(cpu_clock) then 
             if cpu_reset = '1' then
-                sig <= state_fetch; -- Zustand nach Reset
-                cycle_counter <= 0; -- Zähler zurücksetzen
+                sig <= state_fetch; 
+                cycle_counter <= 0;
             else
-                -- Zustandstransitionen
                 case sig is
                     when state_fetch =>
                         sig_reg_write <= '0';
@@ -117,8 +113,8 @@ begin
                     when state_reg_write =>
                         sig_ram_en <= '0';
                         sig_reg_write <= '1';
-                        sig <= state_fetch; -- Neustart der Zustandsmaschine
-                        cycle_counter <= cycle_counter + 1; -- Zähler inkrementieren
+                        sig <= state_fetch; 
+                        cycle_counter <= cycle_counter + 1;
 
                     when others =>
                         sig <= state_fetch;
