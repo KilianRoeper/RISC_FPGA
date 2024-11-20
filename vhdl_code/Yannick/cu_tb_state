@@ -130,18 +130,4 @@ begin
             end if;
         end if;
     end process;
-
-    -- Logic to control register file and RAM based on the current state
-    process(sig)
-    begin
-        -- Combined enable signal for register file operations
-        reg_file_enable_combined <= sig_reg_read or sig_reg_write;
-        
-        -- Enable RAM store signal in the corresponding state
-        if sig = state_ram_en then
-            sig_ram_store_enable <= '1';
-        else
-            sig_ram_store_enable <= '0';
-        end if;
-    end process;
 end Behavioral;
