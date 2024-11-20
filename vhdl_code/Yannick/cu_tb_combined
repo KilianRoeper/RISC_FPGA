@@ -11,14 +11,6 @@ end cu_tb;
 
 architecture Behavioral of cu_tb is  
 
-    -- Declaration of the ControlUnit component with required ports
-    component ControlUnit
-    Port ( 
-        cpu_clock : in STD_LOGIC;
-        reset     : in STD_LOGIC
-      );
-    end component;
-
     -- Definition of pipeline states and a signal to track the current state
     type state is (state_fetch, state_decode, state_reg_read, state_alu_en, state_ram_en, state_reg_write);
     signal sig : state := state_fetch;
@@ -38,15 +30,9 @@ architecture Behavioral of cu_tb is
     signal reg_file_enable_combined : std_logic := '0'; 
     signal ram_enable_combined      : std_logic := '0';
     signal sig_ram_store_enable     : std_logic := '0';
+    signal alu_op_out               : std_logic_vector(3 downto 0):= OPCODE_SW;
     
 begin
-
-    -- Instantiate the Control Unit with the defined signals
-    uut: ControlUnit
-    Port map (
-        cpu_clock => cpu_clock,
-        reset     => cpu_reset
-    );
 
     -- Process for generating the clock signal
     clk_process : process
@@ -122,11 +108,21 @@ begin
         -- Combined enable signal for register file operations
         ram_enable_combined <= sig_fetch or sig_ram_en;
         
+        
         -- Enable RAM store signal in the corresponding state
-        if sig = state_fetch then
+        if alu_op_out = OPCODE_SW then
             sig_ram_store_enable <= '1';
         else
             sig_ram_store_enable <= '0'; 
-        end if;
+        end if;        
     end process;
+    
+    wait_process : process
+    begin 
+        alu_op_out <= OPCODE_ADD;
+        wait for 100 ns; 
+        alu_op_out <= OPCODE_SW;
+        wait;
+    end process; 
+
 end Behavioral;
