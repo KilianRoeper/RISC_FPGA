@@ -35,34 +35,6 @@ architecture Behavioral of cu_tb is
     signal sig_ram_en              : std_logic := '0';
     signal sig_reg_write           : std_logic := '0';
     
-    -- Various control and data signals for components
-    signal sig_pc_op_out           : std_logic_vector(1 downto 0) := (others => '0');
-    signal sig_regA_load_enable    : std_logic := '0';
-    signal sig_ram_store_enable    : std_logic := '0';
-    
-    -- Register file signals
-    signal sig_regB_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regC_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regA_data_in        : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal reg_file_enable_combined : std_logic := '0';
-    
-    -- ALU signals
-    signal sig_result_out          : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_branch_enable_out   : STD_LOGIC := '0';
-    
-    -- RAM signals
-    signal sig_data_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
-    
-    -- Program counter signals
-    signal sig_pc_out              : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    
-    -- Decoder signals
-    signal sig_alu_op_out          : STD_LOGIC_VECTOR(4 downto 0) := "00000";
-    signal sig_regA_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_im_data_out         : STD_LOGIC_VECTOR(7 downto 0) := X"00";
-    signal sig_regB_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_regC_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
 
 begin
 
