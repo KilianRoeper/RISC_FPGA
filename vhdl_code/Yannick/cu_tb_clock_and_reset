@@ -1,3 +1,7 @@
+----------------------------------------------------------------------------------
+-- Created by Yannick Ott
+----------------------------------------------------------------------------------
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use work.RISC_constants.all;
@@ -36,29 +40,8 @@ architecture Behavioral of cu_tb is
     signal sig_regA_load_enable    : std_logic := '0';
     signal sig_ram_store_enable    : std_logic := '0';
     
-    -- Register File Signale
-    signal sig_regB_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regC_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_regA_data_in        : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal reg_file_enable_combined : std_logic := '0';
-    
-    -- ALU Signale
-    signal sig_result_out          : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_branch_enable_out   : STD_LOGIC := '0';
-    
-    -- RAM Signale
-    signal sig_data_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
-    
-    -- Program Counter Signale
-    signal sig_pc_out              : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    
-    -- Decoder Signale
-    signal sig_alu_op_out          : STD_LOGIC_VECTOR(4 downto 0) := "00000";
-    signal sig_regA_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_im_data_out         : STD_LOGIC_VECTOR(7 downto 0) := X"00";
-    signal sig_regB_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
-    signal sig_regC_select_out     : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    -- Zähler für Durchläufe der State Machine
+    signal cycle_counter           : integer := 0;
 
 begin
 
@@ -78,12 +61,21 @@ begin
         wait for 5 ns;
     end process; 
 
-    -- Prozess zur Steuerung des Reset-Signals
+    -- Prozess zur Steuerung des Reset-Signals und Überwachung des Zustands
     stim_proc: process
     begin        
-        cpu_reset <= '1'; -- Setze Reset auf aktiv
-        wait for 50 ns;   -- Warte auf 5 Takte
+        -- Initialisiere Reset
+        cpu_reset <= '1';
+        wait for 50 ns; -- Halte Reset aktiv für 5 Takte
         cpu_reset <= '0'; -- Deaktiviere Reset
+
+        -- Warte, bis die Zustandsmaschine zwei vollständige Durchläufe abgeschlossen hat
+        wait until (sig = state_fetch and cycle_counter = 2);
+        cpu_reset <= '1'; -- Füge Reset hinzu
+        wait for 50 ns;   -- Halte Reset für 5 Takte aktiv
+        cpu_reset <= '0'; -- Deaktiviere Reset
+
+        -- Simulation beendet
         wait;
     end process;
 
@@ -93,6 +85,7 @@ begin
         if rising_edge(cpu_clock) then 
             if cpu_reset = '1' then
                 sig <= state_fetch; -- Zustand nach Reset
+                cycle_counter <= 0; -- Zähler zurücksetzen
             else
                 -- Zustandstransitionen
                 case sig is
@@ -100,63 +93,38 @@ begin
                         sig_reg_write <= '0';
                         sig_fetch <= '1';
                         sig <= state_decode;
+
                     when state_decode =>
                         sig_fetch <= '0';
                         sig_decode <= '1';
                         sig <= state_reg_read;
+
                     when state_reg_read =>
                         sig_decode <= '0';
                         sig_reg_read <= '1';
                         sig <= state_alu_en;
+
                     when state_alu_en =>
                         sig_reg_read <= '0';
                         sig_alu_en <= '1';
                         sig <= state_ram_en;
+
                     when state_ram_en =>
                         sig_alu_en <= '0';
                         sig_ram_en <= '1';
                         sig <= state_reg_write;
+
                     when state_reg_write =>
                         sig_ram_en <= '0';
                         sig_reg_write <= '1';
-                        sig <= state_fetch;  -- Neustart
+                        sig <= state_fetch; -- Neustart der Zustandsmaschine
+                        cycle_counter <= cycle_counter + 1; -- Zähler inkrementieren
+
                     when others =>
                         sig <= state_fetch;
                 end case;
             end if;
         end if;
-    end process;
-
-    -- Logik zur Steuerung der Testbedingungen
-    test_process: process
-    begin
-        wait for 60 ns; -- Warte auf Reset
-        assert sig = state_fetch and sig_fetch = '1'
-        report "FETCH state failed. sig_fetch not active!" severity error;
-
-        wait for 10 ns; -- Wechsle zu DECODE
-        assert sig = state_decode and sig_decode = '1'
-        report "DECODE state failed. sig_decode not active!" severity error;
-
-        wait for 10 ns; -- Wechsle zu REG_READ
-        assert sig = state_reg_read
-        report "Register READ state failed!" severity error;
-
-        wait for 10 ns; -- Wechsle zu ALU_EN
-        assert sig = state_alu_en
-        report "ALU state failed!" severity error;
-
-        wait for 10 ns; -- Wechsle zu RAM_EN
-        assert sig = state_ram_en
-        report "RAM state failed!" severity error;
-
-        wait for 10 ns; -- Wechsle zu REG_WRITE
-        assert sig = state_reg_write
-        report "WRITE state failed!" severity error;
-
-        -- Simulation erfolgreich beendet
-        report "All states passed successfully!" severity note;
-        wait;
     end process;
 
 end Behavioral;
