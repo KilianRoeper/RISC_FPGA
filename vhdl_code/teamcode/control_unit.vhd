@@ -9,8 +9,9 @@ use work.RISC_constants.ALL;
 -- Entity definition for the Control Unit
 entity ControlUnit is
 Port ( 
-        cpu_clock : in STD_LOGIC := '0';    -- Clock signal for the Control Unit
-        reset     : in STD_LOGIC := '0'     -- Reset signal to initialize the Control Unit
+        cpu_clock : in STD_LOGIC := '0';     -- Clock signal for the Control Unit
+        reset     : in STD_LOGIC := '0';     -- Reset signal to initialize the Control Unit
+        fout      : out STD_LOGIC := '0'    -- cmueller
       );
 end ControlUnit;
 
@@ -150,6 +151,7 @@ begin
                 -- State-based control signal activation
                 case sig is
                     when state_fetch =>
+                        fout <= '1';
                         sig_reg_write <= '0';
                         sig_fetch <= '1';
                         sig <= state_decode;
@@ -170,6 +172,7 @@ begin
                         sig_ram_en <= '1';
                         sig <= state_reg_write;
                     when state_reg_write =>
+                        fout <= '0';
                         sig_ram_en <= '0';
                         sig_reg_write <= '1';
                         sig <= state_fetch;  -- Restart the cycle
