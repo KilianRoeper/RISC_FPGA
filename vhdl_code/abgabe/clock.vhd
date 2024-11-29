@@ -1,59 +1,46 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 27.11.2024 16:26:17
--- Design Name: 
--- Module Name: clock - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Entity:Clock
+-- Name: Chris Mueller
 ----------------------------------------------------------------------------------
-
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
+-- Entity declaration for the clock module
+-- The `clock` module divides the input clock frequency from the FPGA into a lower frequency clock for the CPU
 entity clock is
-Port (
-        fpga_clock_in : in  STD_LOGIC;
-        cpu_clock_out : out STD_LOGIC
+    Port (
+        fpga_clock_in : in  STD_LOGIC;  -- Input clock signal from the FPGA
+        cpu_clock_out : out STD_LOGIC   -- Output clock signal for the CPU
     );
 end clock;
 
+-- Behavioral architecture for the clock entity
 architecture Behavioral of clock is
-    constant CountsPerClock : INTEGER := 10000;
-    signal s_cnt : INTEGER range 0 to CountsPerClock := 0;
-    signal s_clk_new : STD_LOGIC := '0';
+    -- Define the number of FPGA clock cycles per new CPU clock cycle
+    constant CountsPerClock : INTEGER := 10000; -- 1 equals 100 MHz -> 10kHz
+    -- Signal to count FPGA clock cycles
+    signal s_cnt : INTEGER range 0 to CountsPerClock := 0; 
+    -- Signal to generate the new clock signal (toggled state)
+    signal s_clk_new : STD_LOGIC := '0'; 
 
 begin
-Process (fpga_clock_in)
+    -- Process block triggered on every rising edge of the FPGA clock
+    Process (fpga_clock_in)
     begin
         if rising_edge(fpga_clock_in) then
+            -- Increment the counter on each FPGA clock cycle
             s_cnt <= s_cnt + 1;
+
+            -- Check if the counter has reached the defined clock division threshold
             if s_cnt >= (CountsPerClock) then
+                -- Reset the counter to 0
                 s_cnt <= 0;
+                -- Toggle the new lower clock signal
                 s_clk_new <= not s_clk_new;
+                -- Assign the toggled signal to the CPU clock output
                 cpu_clock_out <= s_clk_new;
             end if;
         end if;
     end Process;
-
 end Behavioral;
