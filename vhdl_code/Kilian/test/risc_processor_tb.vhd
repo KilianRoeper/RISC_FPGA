@@ -56,6 +56,8 @@ architecture Behavioral of risc_processor_tb is
     signal start_tx                 : STD_LOGIC := '0';
     signal buffer_write_enable      : std_logic := '0'; 
     signal buffer_read_enable       : std_logic := '0'; 
+    signal buffer_data_from_cu      : STD_LOGIC_VECTOR(7 downto 0) := X"00";
+
     
     -- Program Counter
     signal pc_out                   : STD_LOGIC_VECTOR(7 downto 0) := X"00";
@@ -132,7 +134,8 @@ begin
         ram_address_out                 => ram_address,
         start_tx_out                    => start_tx,
         buffer_read_enable_out          => buffer_read_enable,
-        buffer_write_enable_out         => buffer_write_enable  
+        buffer_write_enable_out         => buffer_write_enable, 
+        buffer_data_out                 => buffer_data_from_cu 
     );
 
     buffer_inst : entity work.ring_buffer 
@@ -144,7 +147,7 @@ begin
         clk_in          => cpu_clock, 
         rst_in          => cpu_reset,  
         write_enable_in => buffer_write_enable,
-        data_in         => alu_result(7 downto 0),                      
+        data_in         => buffer_data_from_cu,                      
         read_enable_in  => buffer_read_enable,
         
         read_valid_out  => buffer_read_valid,                           
