@@ -48,9 +48,9 @@ end register_file;
 
 architecture Behavioral of register_file is
     type register_type is array (0 to 7) of std_logic_vector(15 downto 0);  -- 8 registers of 16 bit each
-    signal regs: register_type := (others => X"0000");                      -- initialising all registers to all zeros
+    signal regs: register_type := (others => X"0000");                      --initialising all registers to all zeros
 begin
-process(clk_in)
+process(clk_in, enable_in)
   begin
     if rising_edge(clk_in) and enable_in = '1' then
         regB_out <= regs(to_integer(unsigned(regB_select_in)));

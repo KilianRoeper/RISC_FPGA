@@ -1,237 +1,177 @@
 ----------------------------------------------------------------------------------
--- Created by Yannick Ott
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date: 04.11.2024 13:51:38
+-- Design Name: 
+-- Module Name: control_unit - Behavioral
+-- Project Name: 
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
 ----------------------------------------------------------------------------------
+
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use work.RISC_constants.ALL; 
+library work;
+use work.risc_constants.all;
+use IEEE.NUMERIC_STD.ALL;
 
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+--use IEEE.NUMERIC_STD.ALL;
 
--- Entity definition for the Control Unit
-entity ControlUnit is
-Port ( 
-        cpu_clock : in STD_LOGIC := '0';     -- Clock signal for the Control Unit
-        reset     : in STD_LOGIC := '0';     -- Reset signal to initialize the Control Unit
-        fout      : out STD_LOGIC := '0'    -- cmueller
-      );
-end ControlUnit;
+-- Uncomment the following library declaration if instantiating
+-- any Xilinx leaf cells in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
 
-architecture Behavioral of ControlUnit is
-    
--- Signal declarations - Internal signals for connecting components and managing state transitions
-
-    -- Pipeline states - Signal to represent the state of the pipeline (e.g., Fetch, Decode, Execute, etc.)
-    type state is (state_fetch, state_decode,state_reg_read, state_alu_en, state_ram_en, state_reg_write);
-    signal sig : state := state_fetch;
-    
-    -- CPU signals
-    -- Global reset signal for the CPU
-    signal cpu_reset    : STD_LOGIC := '0';
-    
-    -- Control Unit - Control signals for managing the pipeline stages
-    signal sig_fetch             : std_logic := '0';                                -- Enables the fetch cycle
-    signal sig_decode            : std_logic := '0';                                -- Enables the decode cycle
-    signal sig_reg_read          : std_logic := '0';                                -- Enables register read operations
-    signal sig_alu_en            : std_logic := '0';                                -- Enables ALU computation
-    signal sig_ram_en            : std_logic := '0';                                -- Enables RAM access
-    signal sig_reg_write         : std_logic := '0';                                -- Enables writing to registers
-    signal sig_pc_op_out         : std_logic_vector(1 downto 0) := (others => '0'); -- PC operation control (e.g., increment, branch)
-    signal sig_regA_load_enable  : std_logic := '0';                                -- Enables loading data into Register A
-    signal sig_ram_store_enable  : std_logic := '0';                                -- Enables storing data into RAM
-    
-    -- Register File - Signals for managing the register file and its operations
-    signal sig_regB_out                 : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; -- Output of Register B
-    signal sig_regC_out                 : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; -- Output of Register C
-    signal sig_regA_data_in             : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; -- Input data for Register A
-    signal reg_file_enable_combined     : std_logic := '0';                         -- Combined enable signal for the register file
-    
-    -- ALU - Signals for controlling and receiving data from the ALU
-    signal sig_result_out           : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; -- ALU computation result
-    signal sig_branch_enable_out    : STD_LOGIC := '0';                         -- Enables branch condition checking
-    signal sig_regA_write_enable_out: STD_LOGIC := '0';                         -- Enables writing to Register A after ALU computation
-    
-    -- RAM - Signals for managing RAM access and data transfers
-    signal sig_data_out            : STD_LOGIC_VECTOR(15 downto 0) := X"0000";  -- Data output from RAM
-    signal sig_address_in          : STD_LOGIC_VECTOR(4 downto 0);              -- Address for RAM access
-    signal sig_ram_enable_in       : STD_LOGIC := '0';                          -- Enables RAM access
-    signal sig_ram_reset           : STD_LOGIC := '0';
+entity control_unit is
+Port (  
+        clk_in                      : in STD_LOGIC;
+        reset_in                    : in STD_LOGIC;
+        alu_op_in                   : in STD_LOGIC_VECTOR(3 downto 0);
+        regB_data_in                : in STD_LOGIC_VECTOR(7 downto 0);
+        ram_data_in                 : in STD_LOGIC_VECTOR(15 downto 0);
+        pc_in                       : in STD_LOGIC_VECTOR(7 downto 0);
+        alu_result_in               : in STD_LOGIC_VECTOR(15 downto 0);
+        tx_ready_in                 : in STD_LOGIC;
+        buffer_read_valid_in        : in STD_LOGIC;
+        buffer_full_in              : in STD_LOGIC;
+        buffer_empty_in             : in STD_LOGIC;
         
-    -- PC - Signals for controlling and receiving data from the Program Counter
-    signal sig_pc_out : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; -- Program Counter output
-    
-    -- Decoder - Signals for controlling and receiving outputs from the instruction decoder
-    signal sig_alu_op_out               : STD_LOGIC_VECTOR(4 downto 0) := "00000";  -- ALU operation control
-    signal sig_regA_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";    -- Selects Register A
-    signal sig_im_data_out : STD_LOGIC_VECTOR(7 downto 0) := X"00";                 -- Immediate value
-    signal sig_regA_write_out           : STD_LOGIC := '0';                         -- Enables writing to Register A
-    signal sig_regB_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";    -- Selects Register B
-    signal sig_regC_select_out          : STD_LOGIC_VECTOR(2 downto 0) := "000";    -- Selects Register C
-    
+        fetch_enable_out            : out STD_LOGIC;
+        decode_enable_out           : out STD_LOGIC;
+        regread_enable_out          : out STD_LOGIC;
+        alu_enable_out              : out STD_LOGIC;
+        ram_enable_out              : out STD_LOGIC;
+        regwrite_enable_out         : out STD_LOGIC;
+        ram_enable_combined_out     : out STD_LOGIC;
+        reg_file_enable_combined_out: out STD_LOGIC;
+        pc_op_out                   : out STD_LOGIC_VECTOR(1 downto 0);
+        ram_store_enable_out        : out STD_LOGIC;
+        regA_load_enable_out        : out STD_LOGIC; 
+        regA_data_out               : out STD_LOGIC_VECTOR(15 downto 0);
+        ram_address_out             : out STD_LOGIC_VECTOR(7 downto 0);
+        start_tx_out                : out STD_LOGIC;
+        buffer_read_enable_out      : out STD_LOGIC;
+        buffer_write_enable_out     : out STD_LOGIC;
+        buffer_data_out             : out STD_LOGIC_VECTOR(7 downto 0)
+    ); 
+end control_unit; 
 
+architecture Behavioral of control_unit is
+ 
+    signal s_state                  : STD_LOGIC_VECTOR(5 downto 0) := "000001";
+        
 begin
--- Port Mappings
-
-    -- Register File
-     cpu_register_file : entity work.register_file PORT MAP (
-        clk_in          => cpu_clock,
-        enable_in       => reg_file_enable_combined,               -- Activates the register file for read/write operations
-        write_enable_in => sig_regA_write_enable_out,              -- Write enable for Register A
-        regA_data_in    => sig_regA_data_in,                       -- Data to be written into Register A
-        regA_select_in  => sig_regA_select_out,                    -- Selection signal for Register A
-        regB_select_in  => sig_regB_select_out,                    -- Selection signal for Register B
-        regC_select_in  => sig_regC_select_out,                    -- Selection signal for Register C
-        regB_out        => sig_regB_out,                           -- Output data from Register B
-        regC_out        => sig_regC_out                            -- Output data from Register C
-    );
-
-    -- Decoder
-    cpu_decoder : entity work.decoder PORT MAP (
-        clk_in           => cpu_clock,
-        enable_in        => sig_decode,             -- Activates the decoder for instruction decoding
-        instruction_in   => sig_data_out,           -- Instruction input from RAM
-        alu_op_out       => sig_alu_op_out,         -- ALU operation code output
-        im_data_out      => sig_im_data_out,        -- Immediate data output
-        regA_select_out  => sig_regA_select_out,    -- Register A selection signal output
-        regB_select_out  => sig_regB_select_out,    -- Register B selection signal output
-        regC_select_out  => sig_regC_select_out     -- Register C selection signal output
-    );
-    
-    -- ALU
-    cpu_alu : entity work.alu PORT MAP  (
-        clk_in                => cpu_clock,
-        enable_in             => sig_alu_en,                -- Activates the ALU for computations
-        regB_data_in          => sig_regB_out,              -- Input data from Register B
-        regC_data_in          => sig_regC_out,              -- Input data from Register C
-        im_in                 => sig_im_data_out,           -- Immediate data input
-        alu_op_in             => sig_alu_op_out,            -- ALU operation code input
-        result_out            => sig_result_out,            -- Computation result output
-        branch_enable_out     => sig_branch_enable_out      -- Branch condition signal output
-    );
-    
-    -- Program Counter (PC)
-    cpu_pc : entity work.pc PORT MAP (
-        clk_in      => cpu_clock,
-        pc_op_in    => sig_pc_op_out,           -- Program Counter operation control signal
-        pc_in       => sig_result_out,          -- Input value for Program Counter
-        branch_in   => sig_branch_enable_out,   -- Branch enable signal
-        pc_out      => sig_pc_out               -- Program Counter output
-    );
-    
-    -- RAM
-      cpu_ram : entity work.ram 
-      GENERIC MAP ( 
-        ram_content => test_ram_content1
-      ) 
-      PORT MAP(
-        clk_in              => cpu_clock,   
-        reset_in            => sig_ram_reset,
-        write_enable_in     => sig_ram_store_enable,         -- Write enable signal for RAM
-        enable_in           => sig_ram_en,                   -- Activates RAM for data access
-        data_in             => sig_result_out,               -- Data to be written into RAM
-        addr_in             => sig_address_in,   -- Address input for RAM
-        data_out            => sig_data_out                  -- Data output from RAM
-    );
-    
-
-
-    -- Clock-driven process to manage control signals and state transitions
-    process(cpu_clock)
+    -- core clock process to pulse the entire computer 
+    process(clk_in, reset_in) 
     begin
-        if rising_edge(cpu_clock) then
-            if reset = '1' then
-                -- Reset all control signals
-                sig_fetch <= '0';
-                sig_decode <= '0';
-                sig_reg_read <= '0';
-                sig_alu_en <= '0';
-                sig_ram_en <= '0';
-                sig_reg_write <= '0';
-                sig_regA_load_enable <= '0';
-                sig_ram_store_enable <= '0';
+        if rising_edge(clk_in) then 
+            if reset_in = '1' then
+                s_state <= "000001";
+            elsif s_state = "100000" then
+                s_state <= "000001";
             else
-                -- State-based control signal activation
-                case sig is
-                    when state_fetch =>
-                        fout <= '1';
-                        sig_reg_write <= '0';
-                        sig_fetch <= '1';
-                        sig <= state_decode;
-                    when state_decode =>
-                        sig_fetch <= '0';
-                        sig_decode <= '1';
-                        sig <= state_reg_read;
-                    when state_reg_read =>
-                        sig_decode <= '0';
-                        sig_reg_read <= '1';
-                        sig <= state_alu_en;
-                    when state_alu_en =>
-                        sig_reg_read <= '0';
-                        sig_alu_en <= '1';
-                        sig <= state_ram_en;
-                    when state_ram_en =>
-                        sig_alu_en <= '0';
-                        sig_ram_en <= '1';
-                        sig <= state_reg_write;
-                    when state_reg_write =>
-                        fout <= '0';
-                        sig_ram_en <= '0';
-                        sig_reg_write <= '1';
-                        sig <= state_fetch;  -- Restart the cycle
-                    when others =>
-                        sig <= state_fetch;
-                end case;
-    
-                -- Combined control signals for Register File and RAM
-                reg_file_enable_combined <= sig_reg_read or sig_reg_write;
-                sig_ram_enable_in <= sig_fetch or sig_ram_en;
-    
-                -- Program Counter operation control
-                if reset = '1' then
-                    sig_pc_op_out <= "11";  -- Reset
-                elsif sig_reg_write = '1' then
-                    sig_pc_op_out <= "01";  -- Increment
-                else
-                    sig_pc_op_out <= "00";  -- No operation (NOP)
-                end if;
-    
-                -- Address multiplexer control for RAM (PC or Register B)
-                if sig_ram_store_enable = '1' then
-                    sig_address_in <= sig_regB_out(4 downto 0);   -- Address from Register B
-                else
-                    sig_address_in <= sig_pc_out(4 downto 0);       -- Address from PC    
-                end if;
-    
-                -- Data multiplexer control for Register A (RAM or ALU)
-                if sig_regA_load_enable = '1' then
-                    sig_regA_data_in <= sig_data_out;       -- Data from RAM   
-                else 
-                    sig_regA_data_in <= sig_result_out;     -- Data from ALU
-                end if;                          
-                
-                -- enabling regA write for one cycle
-                if not(sig_alu_op_out(4 downto 1) = OPCODE_SW 
-                    or sig_alu_op_out(4 downto 1) = OPCODE_BEQ 
-                    or sig_alu_op_out(4 downto 1) = OPCODE_B) 
-                    and sig_ram_en = '1' then 
-                        sig_regA_load_enable <= '1';
-                elsif not(sig_alu_op_out(4 downto 1) = OPCODE_SW 
-                    or sig_alu_op_out(4 downto 1) = OPCODE_BEQ 
-                    or sig_alu_op_out(4 downto 1) = OPCODE_B) 
-                    and sig_reg_write = '1' then
-                        sig_regA_load_enable <= '0';
-                else 
-                    sig_regA_load_enable <= '0';     
-                end if;    
-                
-                    -- enabling RAM-write for one cycle 
-                if sig_alu_op_out(4 downto 1) = OPCODE_SW and sig_alu_en = '1' then
-                    sig_ram_store_enable <= '1';
-                elsif sig_alu_op_out(4 downto 1) = OPCODE_SW and sig_ram_en = '1' then
-                    sig_ram_store_enable <= '0';
-                else 
-                    sig_ram_store_enable <= '0';
-                end if;
-                    
-                end if;
+                s_state <= s_state(s_state'left-1 downto 0) & '0';  
+            end if;     
         end if;
+    end process;
+    
+    process(s_state, reset_in, alu_op_in, regB_data_in, pc_in, ram_data_in, alu_result_in, buffer_full_in, tx_ready_in, buffer_empty_in, buffer_read_valid_in)
+        begin
+             
+            fetch_enable_out <= s_state(0);
+            decode_enable_out <= s_state(1);
+            regread_enable_out <= s_state(2);
+            alu_enable_out <= s_state(3);
+            ram_enable_out <= s_state(4);
+            regwrite_enable_out <= s_state(5);
+            reg_file_enable_combined_out <= s_state(2) or s_state(5);
+            ram_enable_combined_out <= s_state(0) or s_state(4);
+                            
+            -- pc_op selection
+            if reset_in = '1' then         -- or btn0 = '1'
+                pc_op_out <= PC_OP_RESET;  -- reset 
+            elsif s_state(4) = '1' then
+                pc_op_out <= PC_OP_INC;  -- increment
+            else
+                pc_op_out <= PC_OP_NOP;  -- nop
+            end if;
+            
+            
+            -- pc_or_regfile
+            if ((alu_op_in = OPCODE_SW or alu_op_in = OPCODE_LW) and s_state(4) = '1') then
+                ram_address_out <= regB_data_in; 
+            else
+                ram_address_out <= pc_in;     
+            end if;
+                 
+            -- ram_or_alu 
+            if alu_op_in = OPCODE_LW and s_state(4) = '1' then
+                regA_data_out <= ram_data_in;       
+            else 
+                regA_data_out <= alu_result_in;
+            end if;
+            
+            -- enabling RAM-write for one cycle 
+            if alu_op_in = OPCODE_SW and s_state(4) = '1' then
+                ram_store_enable_out <= '1';
+            else 
+                ram_store_enable_out <= '0';
+            end if;
+            
+            -- enabling regA write for one cycle
+            if not(alu_op_in = OPCODE_SW 
+                        or alu_op_in = OPCODE_BEQ 
+                        or alu_op_in = OPCODE_B) 
+                        and s_state(5) = '1' then
+                regA_load_enable_out <= '1';
+            else 
+                regA_load_enable_out <= '0';     
+            end if;       
+            
+        -- UART    
+            -- write a number or an ascii character for each SW and address 0x0064 or 0x0065 as long as buffer is not full
+            -- sending a number 
+            if alu_op_in = OPCODE_SW and s_state(4) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned((to_integer(unsigned(alu_result_in)) / 100) + 48, 8));              -- sending hundreds place to buffer
+                buffer_write_enable_out <= '1';  
+            elsif alu_op_in = OPCODE_SW and s_state(5) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned(((to_integer(unsigned(alu_result_in)) mod 100) / 10) + 48, 8));     -- sending tens place to buffer
+                buffer_write_enable_out <= '1';  
+            elsif alu_op_in = OPCODE_SW and s_state(0) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned((to_integer(unsigned(alu_result_in)) mod 10) + 48, 8));            -- sending ones place to buffer
+                buffer_write_enable_out <= '1';  
+            -- writing an ascii character
+            elsif alu_op_in = OPCODE_SW and s_state(4) = '1' and regB_data_in = UART_INTERFACE_ASCII and buffer_full_in = '0' then
+                buffer_data_out <= alu_result_in(7 downto 0);
+                buffer_write_enable_out <= '1';
+            else 
+                buffer_data_out <= X"00";
+                buffer_write_enable_out <= '0';
+            end if;
+            
+            -- increment read pointer to next location for next read and start tx with read data
+            if tx_ready_in = '1' and s_state(1) = '1' and buffer_empty_in = '0' then
+                buffer_read_enable_out <= '1';
+            else
+                buffer_read_enable_out <= '0';
+            end if;
+            
+            if buffer_read_valid_in = '1' then 
+                start_tx_out <= '1';
+            else
+                start_tx_out <= '0';    
+            end if;
     end process;
 end Behavioral;

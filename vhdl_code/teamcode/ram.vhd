@@ -1,39 +1,67 @@
+----------------------------------------------------------------------------------
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date: 30.10.2024 23:31:25
+-- Design Name: 
+-- Module Name: ram - Behavioral
+-- Project Name: 
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use work.RISC_constants.ALL;
+library work;
+use work.risc_constants.ALL;
 
-entity ram is 
-    generic (
+
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+--use IEEE.NUMERIC_STD.ALL;
+
+-- Uncomment the following library declaration if instantiating
+-- any Xilinx leaf cells in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
+
+entity ram is
+generic (
         ram_content : ram_type := (others => (others => '0'))
         );
-    Port (
-        clk_in : in STD_LOGIC;               -- Clock Input
-        reset_in : in STD_LOGIC;             -- Reset Signal
-        enable_in : in STD_LOGIC;            -- RAM Enable
-        write_enable_in : in STD_LOGIC;      -- Write Enable
-        addr_in : in STD_LOGIC_VECTOR(4 downto 0); -- Address (5 Bit)
-        data_in : in STD_LOGIC_VECTOR(15 downto 0);  -- Data Input
-        data_out : out STD_LOGIC_VECTOR(15 downto 0) -- Data Output
-    );
+Port (  clk_in           : in STD_LOGIC;
+        write_enable_in  : in STD_LOGIC;
+        enable_in        : in STD_LOGIC;
+        data_in          : in STD_LOGIC_VECTOR (15 downto 0);
+        addr_in          : in STD_LOGIC_VECTOR (7 downto 0);
+        
+        data_out         : out STD_LOGIC_VECTOR (15 downto 0)
+       );
 end ram;
 
 architecture Behavioral of ram is
-    signal mem: ram_type := ram_content;
+   signal ram: ram_type := ram_content;
+   
 begin
-    process(clk_in)
-    begin
-        if rising_edge(clk_in) then
-            if reset_in = '1' then
-                -- Im Falle eines Reset nur data_out leeren, aber den RAM-Inhalt nicht beeinflussen
-                data_out <= (others => '0');
-            elsif enable_in = '1' then  -- RAM ist aktiv
-                if write_enable_in = '1' then  -- Schreiben in den RAM
-                    mem(to_integer(unsigned(addr_in))) <= data_in;
-                else  -- Lesen aus dem RAM
-                    data_out <= mem(to_integer(unsigned(addr_in)));
-                end if;
-            end if;
-        end if;
-    end process;
+process (clk_in, enable_in)
+	begin
+		if rising_edge(clk_in) and enable_in = '1' then
+			if (write_enable_in = '1') then
+				ram(to_integer(unsigned(addr_in))) <= data_in;
+			else
+				data_out <= ram(to_integer(unsigned(addr_in)));
+			end if;
+		end if;
+	end process;
+
 end Behavioral;

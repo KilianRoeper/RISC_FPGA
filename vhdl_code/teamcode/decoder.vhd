@@ -22,9 +22,9 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 library work;
-use work.RISC_constants.OPCODE_SW;
-use work.RISC_constants.OPCODE_BEQ;
-use work.RISC_constants.OPCODE_B;
+use work.risc_constants.OPCODE_SW;
+use work.risc_constants.OPCODE_BEQ;
+use work.risc_constants.OPCODE_B;
 
 
 -- Uncomment the following library declaration if using
