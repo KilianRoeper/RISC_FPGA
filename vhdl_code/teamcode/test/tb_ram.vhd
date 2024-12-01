@@ -1,0 +1,175 @@
+----------------------------------------------------------------------------------
+-- Entity: tb_ram
+-- Name: Kelly Velten
+----------------------------------------------------------------------------------
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+library work;
+use work.risc_constants.ALL;
+
+entity ram is
+generic (
+        ram_content : ram_type := (others => (others => '0'))
+        );
+Port (  clk_in           : in STD_LOGIC;
+        write_enable_in  : in STD_LOGIC;
+        enable_in        : in STD_LOGIC;
+        data_in          : in STD_LOGIC_VECTOR (15 downto 0);
+        addr_in          : in STD_LOGIC_VECTOR (7 downto 0);
+        
+        data_out         : out STD_LOGIC_VECTOR (15 downto 0)
+       );
+end ram;
+
+architecture Behavioral of ram is
+   signal ram: ram_type := ram_content;
+   
+begin
+process (clk_in, enable_in)
+	begin
+		if rising_edge(clk_in) and enable_in = '1' then
+			-- put the input data into the RAM at the specified address if the write enable signal is high
+			if (write_enable_in = '1') then
+				ram(to_integer(unsigned(addr_in))) <= data_in;
+			else
+			-- ouput the stored data at addr_in if the ram is enabled
+				data_out <= ram(to_integer(unsigned(addr_in)));
+			end if;
+		end if;
+	end process;
+
+end Behavioral;
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity custom_ram_tb is
+end custom_ram_tb;
+
+architecture Behavioral of custom_ram_tb is
+
+    signal clk_in : STD_LOGIC := '0';
+    signal reset_in : STD_LOGIC := '0';
+    signal enable_in : STD_LOGIC := '0';
+    signal write_enable_in : STD_LOGIC := '0';
+    signal addr_in : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
+    signal data_in : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+    signal data_out : STD_LOGIC_VECTOR(15 downto 0);
+
+    component custom_ram
+        Port (
+            clk_in : in STD_LOGIC;
+            reset_in : in STD_LOGIC;
+            enable_in : in STD_LOGIC;
+            write_enable_in : in STD_LOGIC;
+            addr_in : in STD_LOGIC_VECTOR(4 downto 0);
+            data_in : in STD_LOGIC_VECTOR(15 downto 0);
+            data_out : out STD_LOGIC_VECTOR(15 downto 0)
+        );
+    end component;
+
+begin
+    uut: custom_ram
+        Port map (
+            clk_in => clk_in,
+            reset_in => reset_in,
+            enable_in => enable_in,
+            write_enable_in => write_enable_in,
+            addr_in => addr_in,
+            data_in => data_in,
+            data_out => data_out
+        );
+
+    clk_process : process
+    begin
+        clk_in <= '0';
+        wait for 10 ns;
+        clk_in <= '1';
+        wait for 10 ns;
+    end process clk_process;
+
+    stimulus_process : process
+    begin
+        -- Schritt 1: Reset testen
+        reset_in <= '1';
+        wait for 20 ns;
+        reset_in <= '0';
+        wait for 20 ns;
+        
+        -- Schritt 2: Schreibe und Lese an Adresse 1
+        enable_in <= '1';
+        write_enable_in <= '1';
+        addr_in <= "00001";              -- Adresse 1
+        data_in <= "0000000000001010";   -- Wert: 10 in Hex
+        wait for 20 ns;
+
+        write_enable_in <= '0';
+        wait for 20 ns;
+        assert data_out = "0000000000001010" 
+        report "Fehler bei Lesen von Adresse 1" severity error;
+
+        -- Schritt 3: Schreibe und Lese an einer anderen Adresse (Adresse 2)
+        write_enable_in <= '1';
+        addr_in <= "00010";              -- Adresse 2
+        data_in <= "0000000000001100";   -- Wert: 12 in Hex
+        wait for 20 ns;
+
+        write_enable_in <= '0';
+        addr_in <= "00010";              -- Zurück zu Adresse 2 für Leseoperation
+        wait for 20 ns;
+        assert data_out = "0000000000001100"
+        report "Fehler bei Lesen von Adresse 2" severity error;
+
+        -- Schritt 4: Testen des Schreibens an mehrere Adressen
+        write_enable_in <= '1';
+        addr_in <= "00011";              -- Adresse 3
+        data_in <= "0000000000001111";   -- Wert: 15 in Hex
+        wait for 20 ns;
+
+        addr_in <= "00100";              -- Adresse 4
+        data_in <= "0000000000000001";   -- Wert: 1 in Hex
+        wait for 20 ns;
+
+        -- Schritt 5: Teste Lesen der vorherigen Werte von Adresse 3 und 4
+        write_enable_in <= '0';
+        addr_in <= "00011";              -- Adresse 3
+        wait for 20 ns;
+        assert data_out = "0000000000001111"
+        report "Fehler bei Lesen von Adresse 3" severity error;
+
+        addr_in <= "00100";              -- Adresse 4
+        wait for 20 ns;
+        assert data_out = "0000000000000001"
+        report "Fehler bei Lesen von Adresse 4" severity error;
+
+        -- Schritt 6: Testen der Reset-Funktion, um sicherzustellen, dass Speicherinhalte erhalten bleiben
+        reset_in <= '1';
+        wait for 20 ns;
+        reset_in <= '0';
+        wait for 20 ns;
+
+        -- Überprüfen, ob Daten nach Reset unverändert sind
+        addr_in <= "00001";
+        wait for 20 ns;
+        assert data_out = "0000000000001010"
+        report "Datenverlust bei Adresse 1 nach Reset" severity error;
+
+        addr_in <= "00010";
+        wait for 20 ns;
+        assert data_out = "0000000000001100"
+        report "Datenverlust bei Adresse 2 nach Reset" severity error;
+
+        -- Schritt 7: Lesen von leeren Adressen, um sicherzustellen, dass NOP-Werte zurückgegeben werden
+        addr_in <= "00101";  -- Adresse 5, die noch nicht beschrieben wurde
+        wait for 20 ns;
+        assert data_out = "0000000000000000"
+        report "Nicht beschriebene Adresse 5 enthält nicht NOP" severity error;
+
+        -- Ende der Simulation
+        wait;
+    end process stimulus_process;
+
+end Behavioral;
