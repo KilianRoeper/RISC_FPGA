@@ -63,7 +63,8 @@ Port (
         ram_address_out             : out STD_LOGIC_VECTOR(7 downto 0);
         start_tx_out                : out STD_LOGIC;
         buffer_read_enable_out      : out STD_LOGIC;
-        buffer_write_enable_out     : out STD_LOGIC
+        buffer_write_enable_out     : out STD_LOGIC;
+        buffer_data_out             : out STD_LOGIC_VECTOR(7 downto 0)
     ); 
 end control_unit; 
 
@@ -139,11 +140,24 @@ begin
                 regA_load_enable_out <= '0';     
             end if;       
             
-        -- UART 
-            -- write for each SW and address 0x0064 as long as buffer is not full
-            if alu_op_in = OPCODE_SW and s_state(4) = '1' and regB_data_in = UART_INTERFACE and buffer_full_in = '0' then 
+        -- UART    
+            -- write a number or an ascii character for each SW and address 0x0064 or 0x0065 as long as buffer is not full
+            -- sending a number 
+            if alu_op_in = OPCODE_SW and s_state(4) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned((to_integer(unsigned(alu_result_in)) / 100) + 48, 8));              -- sending hundreds place to buffer
+                buffer_write_enable_out <= '1';  
+            elsif alu_op_in = OPCODE_SW and s_state(5) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned(((to_integer(unsigned(alu_result_in)) mod 100) / 10) + 48, 8));     -- sending tens place to buffer
+                buffer_write_enable_out <= '1';  
+            elsif alu_op_in = OPCODE_SW and s_state(0) = '1' and regB_data_in = UART_INTERFACE_NUMBER and buffer_full_in = '0' then
+                buffer_data_out <= std_logic_vector(to_unsigned((to_integer(unsigned(alu_result_in)) mod 10) + 48, 8));            -- sending ones place to buffer
+                buffer_write_enable_out <= '1';  
+            -- writing an ascii character
+            elsif alu_op_in = OPCODE_SW and s_state(4) = '1' and regB_data_in = UART_INTERFACE_ASCII and buffer_full_in = '0' then
+                buffer_data_out <= alu_result_in(7 downto 0);
                 buffer_write_enable_out <= '1';
-            else
+            else 
+                buffer_data_out <= X"00";
                 buffer_write_enable_out <= '0';
             end if;
             
@@ -157,7 +171,7 @@ begin
             if buffer_read_valid_in = '1' then 
                 start_tx_out <= '1';
             else
-                start_tx_out <= '0';
+                start_tx_out <= '0';    
             end if;
     end process;
 end Behavioral;
