@@ -1,39 +1,15 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 30.10.2024 23:31:25
--- Design Name: 
--- Module Name: ram - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
+-- Entity: ram
+-- Name: Kelly Velten
 ----------------------------------------------------------------------------------
 
+-- implements the RAM to hold the instructions generically
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.risc_constants.ALL;
-
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
 
 entity ram is
 generic (
@@ -56,9 +32,11 @@ begin
 process (clk_in, enable_in)
 	begin
 		if rising_edge(clk_in) and enable_in = '1' then
+			-- put the input data into the RAM at the specified address if the write enable signal is high
 			if (write_enable_in = '1') then
 				ram(to_integer(unsigned(addr_in))) <= data_in;
 			else
+			-- ouput the stored data at addr_in if the ram is enabled
 				data_out <= ram(to_integer(unsigned(addr_in)));
 			end if;
 		end if;
