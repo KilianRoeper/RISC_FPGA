@@ -73,7 +73,8 @@ package RISC_constants is
     constant r7 : std_logic_vector(2 downto 0):= "111";
     
     -- UART
-    constant UART_INTERFACE : STD_LOGIC_VECTOR(7 downto 0) := X"64";
+    constant UART_INTERFACE_ASCII   : STD_LOGIC_VECTOR(7 downto 0) := X"64";
+    constant UART_INTERFACE_NUMBER  : STD_LOGIC_VECTOR(7 downto 0) := X"65";
     
     -- types
     type ram_type is array (0 to 255) of std_logic_vector(15 downto 0);
@@ -110,36 +111,39 @@ package RISC_constants is
     );
     
     constant test_ram_content3 : ram_type := (
-        OPCODE_LI & r1 & "1" & X"41",                                           -- load 16 into r1 for comparing result of ADD loop                             -- 00: 0x4310
-        OPCODE_LI & r2 & "1" & X"34",                                           -- initial value of the register which holds the results of the operations      -- 01: 0x4534
+        OPCODE_LI & r1 & "1" & X"90",                                           -- load 144 into r1 for comparing result of ADD loop                             -- 00: 0x4310
+        OPCODE_LI & r2 & "1" & X"90",                                           -- initial value of the register which holds the results of the operations      -- 01: 0x4534
         OPCODE_LI & r3 & "1" & X"01",                                           -- value to add and subtract with                                               -- 02: 0x4701
-        OPCODE_LI & r5 & "1" & X"64",                                           -- address for sending data to uart - X"0100"                                   -- 03: 0x4B64
-        OPCODE_LI & r6 & "1" & X"0D",                                           -- carriage return for uart                                                     -- 04: 0x4D0D
-        OPCODE_LI & r7 & "1" & X"0A",                                           -- line feed for uart                                                           -- 05: 0x4D0A
+        OPCODE_LI & r6 & "1" & X"0D",                                           -- carriage return for uart                                                     -- 03: 0x4D0D
+        OPCODE_LI & r7 & "1" & X"0A",                                           -- line feed for uart                                                           -- 04: 0x4D0A
     
     --sub_label
+        OPCODE_LI & r5 & "1" & UART_INTERFACE_NUMBER,                           -- address for sending a 3-digit number to uart                                 -- 05: 0x4B65
         OPCODE_SW & "0000" & r5 & r2 &"00",                                     -- send alu result in r2 to uart                                                -- 06: 0x50A8
-        OPCODE_SW & "0000" & r5 & r6 &"00",                                     -- send carriage return to uart                                                 -- 07: 0x50B8
-        OPCODE_SW & "0000" & r5 & r7 &"00",                                     -- send line feed to uart                                                       -- 08: 0x50BC
-        OPCODE_LI & r4 & "1" & X"0E",                                           -- load address to jump to into r4                                              -- 09: 0x490C
+        OPCODE_LI & r5 & "1" & UART_INTERFACE_ASCII,                            -- address for sending an ascii character to uart                               -- 07: 0x4B64
+        OPCODE_SW & "0000" & r5 & r6 &"00",                                     -- send carriage return to uart                                                 -- 08: 0x50B8
+        OPCODE_SW & "0000" & r5 & r7 &"00",                                     -- send line feed to uart                                                       -- 09: 0x50BC
+        OPCODE_LI & r4 & "1" & X"0F",                                           -- load address to jump to into r4                                              -- 0A: 0x490C
     
     --sub_loop_label
-        OPCODE_SUB & r2 & "0" & r2 & r3 & "00",                                                                                                                 -- 0A: 0x144C
-        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",                                                                                                                 -- 0B: 0xB044
-        OPCODE_BEQ & "000" & CJF_BZ(2) & r4 & r0 & CJF_BZ(1 downto 0),          -- branch to add_label if r2 reached 0                                          -- 0C: 0x7081    
-        OPCODE_B & "0000" & X"0A",                                              -- branch to SUB of sub_label                                                   -- 0D: 0x8008
+        OPCODE_SUB & r2 & "0" & r2 & r3 & "00",                                                                                                                 -- 0B: 0x144C
+        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",                                                                                                                 -- 0C: 0xB044
+        OPCODE_BEQ & "000" & CJF_BZ(2) & r4 & r0 & CJF_BZ(1 downto 0),          -- branch to add_label if r2 reached 0                                          -- 0D: 0x7081    
+        OPCODE_B & "0000" & X"0B",                                              -- branch to SUB of sub_label                                                   -- 0E: 0x8008
     
     --add_label
-        OPCODE_SW & "0000" & r5 & r2 &"00",                                     -- send alu result in r2 to uart                                                -- 0E: 0x50A8
-        OPCODE_SW & "0000" & r5 & r6 &"00",                                     -- send carriage return to uart                                                 -- 0F: 0x50B8
-        OPCODE_SW & "0000" & r5 & r7 &"00",                                     -- send line feed to uart                                                       -- 10: 0x50BC
-        OPCODE_LI & r4 & "1" & X"06",                                           -- load address to jump to into r4                                              -- 11: 0x4905
+        OPCODE_LI & r5 & "1" & UART_INTERFACE_NUMBER,                           -- address for sending a 3-digit number to uart                                 -- 0F: 0x4B65
+        OPCODE_SW & "0000" & r5 & r2 &"00",                                     -- send alu result in r2 to uart                                                -- 10: 0x50A8
+        OPCODE_LI & r5 & "1" & UART_INTERFACE_ASCII,                            -- address for sending an ascii character to uart                               -- 11: 0x4B64
+        OPCODE_SW & "0000" & r5 & r6 &"00",                                     -- send carriage return to uart                                                 -- 12: 0x50B8
+        OPCODE_SW & "0000" & r5 & r7 &"00",                                     -- send line feed to uart                                                       -- 13: 0x50BC
+        OPCODE_LI & r4 & "1" & X"05",                                           -- load address to jump to into r4                                              -- 14: 0x4905
     
     --add_loop_label
-        OPCODE_ADD & r2 & "0" & r2 & r3 & "00",                                                                                                                 -- 12: 0x044C
-        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",                                                                                                                 -- 13: 0xB044
-        OPCODE_BEQ & "000" & CJF_EQ(2) & r4 & r0 & CJF_EQ(1 downto 0),          -- branch to sub_label if r2 reached 16                                         -- 14: 0x7080
-        OPCODE_B & "0000" & X"12",                                              -- branch to ADD of add_label                                                   -- 15: 0x800F           
+        OPCODE_ADD & r2 & "0" & r2 & r3 & "00",                                                                                                                 -- 15: 0x044C
+        OPCODE_CMP & r0 & "0" & r2 & r1 & "00",                                                                                                                 -- 16: 0xB044
+        OPCODE_BEQ & "000" & CJF_EQ(2) & r4 & r0 & CJF_EQ(1 downto 0),          -- branch to sub_label if r2 reached 16                                         -- 17: 0x7080
+        OPCODE_B & "0000" & X"15",                                              -- branch to ADD of add_label                                                   -- 18: 0x800F           
         
         others => X"0000"                       
     );
