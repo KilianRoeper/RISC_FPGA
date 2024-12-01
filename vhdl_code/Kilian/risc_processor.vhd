@@ -29,13 +29,19 @@ use IEEE.NUMERIC_STD.ALL;
 entity risc_processor is
 Port (  
         cpu_clock       : in STD_LOGIC;
-        uart_rxd_out    : out STD_LOGIC        -- pin to send to putty shell
---        sw0             : in STD_LOGIC;
+        uart_rxd_out    : out STD_LOGIC;        -- pin to send to putty shell
+        sw0             : in STD_LOGIC
      --   btn0            : in STD_LOGIC
     );
 end risc_processor; 
 
 architecture Behavioral of risc_processor is 
+
+    -- switches and buttons 
+    signal debounced_sw             : STD_LOGIC := '0';
+    
+    -- clock
+    signal clk_reduced              : STD_LOGIC := '0';
 
     -- reset
     signal cpu_reset                : STD_LOGIC := '0';
@@ -57,6 +63,7 @@ architecture Behavioral of risc_processor is
     signal start_tx                 : STD_LOGIC := '0';
     signal buffer_write_enable      : std_logic := '0'; 
     signal buffer_read_enable       : std_logic := '0'; 
+    signal buffer_data_from_cu      : STD_LOGIC_VECTOR(7 downto 0) := X"00";
     
     -- Program Counter
     signal pc_out                   : STD_LOGIC_VECTOR(7 downto 0) := X"00";
@@ -98,15 +105,31 @@ begin
 
 -- port mappings  
 
+    switches_and_buttons_inst : entity work.switches_and_buttons
+    PORT MAP (
+        clk_in      => cpu_clock,
+        sw_in       => sw0,
+        
+        deb_sw_out  => debounced_sw
+    );
+
+    clock_inst : entity work.clock
+    PORT MAP (
+        fpga_clock_in   => cpu_clock,
+        sw_in           => debounced_sw,
+        
+        cpu_clock_out   => clk_reduced 
+    );
+
     reset_inst : entity work.reset
     PORT MAP ( 
-        clk_in      => cpu_clock,
+        clk_in      => clk_reduced,
         reset_out   => cpu_reset
     );
 
     control_unit_inst : entity work.control_unit
     PORT MAP (
-        clk_in                          => cpu_clock,
+        clk_in                          => clk_reduced,
         reset_in                        => cpu_reset,
         alu_op_in                       => alu_op(4 downto 1),           
         regB_data_in                    => regB_data(7 downto 0),         
@@ -133,7 +156,8 @@ begin
         ram_address_out                 => ram_address,
         start_tx_out                    => start_tx,
         buffer_read_enable_out          => buffer_read_enable,
-        buffer_write_enable_out         => buffer_write_enable  
+        buffer_write_enable_out         => buffer_write_enable,  
+        buffer_data_out                 => buffer_data_from_cu
     );
 
     buffer_inst : entity work.ring_buffer 
@@ -142,10 +166,10 @@ begin
         RAM_DEPTH => BUFFER_DEPTH
     ) 
     PORT MAP (
-        clk_in          => cpu_clock, 
+        clk_in          => clk_reduced, 
         rst_in          => cpu_reset,  
         write_enable_in => buffer_write_enable,
-        data_in         => alu_result(7 downto 0),                      
+        data_in         => buffer_data_from_cu,                      
         read_enable_in  => buffer_read_enable,
         
         read_valid_out  => buffer_read_valid,                           
@@ -170,7 +194,7 @@ begin
     -- program counter port mappings
     cpu_pc : entity work.pc 
     PORT MAP (
-        clk_in      => cpu_clock,
+        clk_in      => clk_reduced,
         pc_op_in    => pc_op,
         pc_in       => alu_result,
         branch_in   => branch_enable,
@@ -184,7 +208,7 @@ begin
         ram_content => test_ram_content3
     ) 
     PORT MAP (
-        clk_in          => cpu_clock,
+        clk_in          => clk_reduced,
         write_enable_in => ram_store_enable,
         enable_in       => ram_enable_combined,
         data_in         => alu_result,
@@ -196,7 +220,7 @@ begin
     -- decoder port mappings 
     cpu_decoder : entity work.decoder 
     PORT MAP (
-        clk_in              => cpu_clock, 
+        clk_in              => clk_reduced, 
         enable_in           => decode_enable,
         instruction_in      => ram_data,
         
@@ -210,7 +234,7 @@ begin
     --register file port mappings
     cpu_register_file : entity work.register_file 
     PORT MAP (
-        clk_in          => cpu_clock,
+        clk_in          => clk_reduced,
         enable_in       => reg_file_enable_combined,
         write_enable_in => regA_load_enable,
         regA_data_in    => regA_data,
@@ -225,7 +249,7 @@ begin
      -- alu port mappings   
      cpu_alu : entity work.alu 
      PORT MAP ( 
-        clk_in                  => cpu_clock,
+        clk_in                  => clk_reduced,
         enable_in               => alu_enable,
         reg_B_data_in           => regB_data,
         reg_C_data_in           => regC_data,
