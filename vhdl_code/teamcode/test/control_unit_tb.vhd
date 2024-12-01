@@ -136,6 +136,9 @@ control_unit_inst : entity work.control_unit
         wait for clk_period;
         assert(ram_address = X"03") report " ram address should be set according to pc" severity error;
         
+        -- test that regA_load_enable is not set during OPCODE_SW on next clock enhancement
+        assert(regA_load_enable = '0') report " regA_load_enable should not be set" severity error; 
+        
         -- enhance clock to test next operations
         wait for clk_period * 4;
         
@@ -149,13 +152,6 @@ control_unit_inst : entity work.control_unit
         alu_result <= X"EF12";
         wait for clk_period;
         assert(regA_data = X"EF12") report " regA data is not set by alu result" severity error;
-        
-        -- enhance clock to test next operations
-        wait for clk_period * 4;
-        
-       
-         
-        
         
         wait;
     end process;
