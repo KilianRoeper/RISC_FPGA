@@ -11,26 +11,30 @@ use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.risc_constants.ALL;
 
+-- Entity declaration for the RAM module
 entity ram is
 generic (
         ram_content : ram_type := (others => (others => '0'))
         );
-Port (  clk_in           : in STD_LOGIC;
-        write_enable_in  : in STD_LOGIC;
-        enable_in        : in STD_LOGIC;
-        data_in          : in STD_LOGIC_VECTOR (15 downto 0);
-        addr_in          : in STD_LOGIC_VECTOR (7 downto 0);
+Port (  clk_in           : in STD_LOGIC; --Clock input
+        write_enable_in  : in STD_LOGIC; --Write enable signal
+        enable_in        : in STD_LOGIC; --enable signal to activate RAM
+        data_in          : in STD_LOGIC_VECTOR (15 downto 0); --16-bit data input for write operations
+        addr_in          : in STD_LOGIC_VECTOR (7 downto 0); --8- bit address input for memory access
         
-        data_out         : out STD_LOGIC_VECTOR (15 downto 0)
+        data_out         : out STD_LOGIC_VECTOR (15 downto 0) --16-bit data output for read operations
        );
 end ram;
 
+--Architecture definition
 architecture Behavioral of ram is
    signal ram: ram_type := ram_content;
    
 begin
+-- Process triggered on the rising edge of the clock and dependent on the enable signal
 process (clk_in, enable_in)
 	begin
+		-- Perform operations on the rising edge of the clock if RAM is enabled
 		if rising_edge(clk_in) and enable_in = '1' then
 			-- put the input data into the RAM at the specified address if the write enable signal is high
 			if (write_enable_in = '1') then
