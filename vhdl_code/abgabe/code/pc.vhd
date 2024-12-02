@@ -19,7 +19,7 @@ Port (  clk_in      : in STD_LOGIC;
         
         pc_out      : out STD_LOGIC_VECTOR (7 downto 0) 
     );
-end PC;
+end pc;
 
 architecture Behavioral of PC is
   signal current_pc: STD_LOGIC_VECTOR(15 downto 0) := X"0000";
