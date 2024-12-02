@@ -53,14 +53,15 @@ end custom_ram_tb;
 
 architecture Behavioral of custom_ram_tb is
 
-    signal clk_in : STD_LOGIC := '0';
-    signal reset_in : STD_LOGIC := '0';
-    signal enable_in : STD_LOGIC := '0';
-    signal write_enable_in : STD_LOGIC := '0';
-    signal addr_in : STD_LOGIC_VECTOR(4 downto 0) := (others => '0');
-    signal data_in : STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
-    signal data_out : STD_LOGIC_VECTOR(15 downto 0);
+    signal clk_in : STD_LOGIC := '0'; --Clock signal
+    signal reset_in : STD_LOGIC := '0'; --Reset signal
+    signal enable_in : STD_LOGIC := '0'; --Enable signal for RAM
+    signal write_enable_in : STD_LOGIC := '0'; --Write enable signal
+    signal addr_in : STD_LOGIC_VECTOR(4 downto 0) := (others => '0'); --address signal
+    signal data_in : STD_LOGIC_VECTOR(15 downto 0) := (others => '0'); --data input signal for write
+    signal data_out : STD_LOGIC_VECTOR(15 downto 0); --data out signal for read
 
+-- component declaration for the RAM module under test
     component custom_ram
         Port (
             clk_in : in STD_LOGIC;
@@ -74,6 +75,7 @@ architecture Behavioral of custom_ram_tb is
     end component;
 
 begin
+	-- instantiation of the RAM module
     uut: custom_ram
         Port map (
             clk_in => clk_in,
@@ -85,87 +87,89 @@ begin
             data_out => data_out
         );
 
+ -- Clock generation process (50 MHz clock with 20 ns period)
     clk_process : process
     begin
         clk_in <= '0';
-        wait for 10 ns;
+        wait for 10 ns; --Low phase of clock
         clk_in <= '1';
-        wait for 10 ns;
+        wait for 10 ns; --High phase of clock
     end process clk_process;
 
+	--Stimulus process for applying test cases
     stimulus_process : process
     begin
-        -- Schritt 1: Reset testen
-        reset_in <= '1';
+        -- Step 1: Test reset functionality
+        reset_in <= '1'; --Apply reset
         wait for 20 ns;
-        reset_in <= '0';
+        reset_in <= '0'; --Deactivate reset
         wait for 20 ns;
         
-        -- Schritt 2: Schreibe und Lese an Adresse 1
-        enable_in <= '1';
-        write_enable_in <= '1';
-        addr_in <= "00001";              -- Adresse 1
-        data_in <= "0000000000001010";   -- Wert: 10 in Hex
+        -- Step 2: Test write and read operation at address 1
+        enable_in <= '1'; --Enable RAM
+        write_enable_in <= '1'; --Enable write
+        addr_in <= "00001";              -- Address 1
+        data_in <= "0000000000001010";   -- Write value 10 in Hex
         wait for 20 ns;
 
-        write_enable_in <= '0';
+        write_enable_in <= '0'; --Disable write for read operation
         wait for 20 ns;
         assert data_out = "0000000000001010" 
         report "Fehler bei Lesen von Adresse 1" severity error;
 
-        -- Schritt 3: Schreibe und Lese an einer anderen Adresse (Adresse 2)
-        write_enable_in <= '1';
-        addr_in <= "00010";              -- Adresse 2
-        data_in <= "0000000000001100";   -- Wert: 12 in Hex
+        -- Step 3: Test write and read operation at address 2
+        write_enable_in <= '1'; -- Enable write
+        addr_in <= "00010";              -- Address 2
+        data_in <= "0000000000001100";   -- Write value 12 in Hex
         wait for 20 ns;
 
-        write_enable_in <= '0';
-        addr_in <= "00010";              -- Zurück zu Adresse 2 für Leseoperation
+        write_enable_in <= '0'; --Disable write for read operation
+        addr_in <= "00010";              -- return to address 2
         wait for 20 ns;
         assert data_out = "0000000000001100"
         report "Fehler bei Lesen von Adresse 2" severity error;
 
-        -- Schritt 4: Testen des Schreibens an mehrere Adressen
-        write_enable_in <= '1';
-        addr_in <= "00011";              -- Adresse 3
-        data_in <= "0000000000001111";   -- Wert: 15 in Hex
+        -- Step 4: Test writing to multiple addresses
+        write_enable_in <= '1'; --Enable write
+        addr_in <= "00011";              -- Address 3
+        data_in <= "0000000000001111";   -- Write value 15 in Hex
         wait for 20 ns;
 
-        addr_in <= "00100";              -- Adresse 4
-        data_in <= "0000000000000001";   -- Wert: 1 in Hex
+        addr_in <= "00100";              -- Address 4
+        data_in <= "0000000000000001";   -- Write value 1 in Hex
         wait for 20 ns;
 
-        -- Schritt 5: Teste Lesen der vorherigen Werte von Adresse 3 und 4
-        write_enable_in <= '0';
-        addr_in <= "00011";              -- Adresse 3
+        -- Step 5: Validate reading from multiple addresses
+        write_enable_in <= '0'; --Disable write
+        addr_in <= "00011";              -- Address 3
         wait for 20 ns;
         assert data_out = "0000000000001111"
         report "Fehler bei Lesen von Adresse 3" severity error;
 
-        addr_in <= "00100";              -- Adresse 4
+        addr_in <= "00100";              -- Address 4
         wait for 20 ns;
         assert data_out = "0000000000000001"
         report "Fehler bei Lesen von Adresse 4" severity error;
 
-        -- Schritt 6: Testen der Reset-Funktion, um sicherzustellen, dass Speicherinhalte erhalten bleiben
-        reset_in <= '1';
+        -- Step 6: Test reset functionality and memory retention
+        reset_in <= '1'; --Apply reset
         wait for 20 ns;
-        reset_in <= '0';
+        reset_in <= '0'; --Deactivate reset
         wait for 20 ns;
 
         -- Überprüfen, ob Daten nach Reset unverändert sind
-        addr_in <= "00001";
+        addr_in <= "00001"; --Address 1
         wait for 20 ns;
         assert data_out = "0000000000001010"
         report "Datenverlust bei Adresse 1 nach Reset" severity error;
 
-        addr_in <= "00010";
+        addr_in <= "00010"; --Address 2
         wait for 20 ns;
         assert data_out = "0000000000001100"
         report "Datenverlust bei Adresse 2 nach Reset" severity error;
 
-        -- Schritt 7: Lesen von leeren Adressen, um sicherzustellen, dass NOP-Werte zurückgegeben werden
-        addr_in <= "00101";  -- Adresse 5, die noch nicht beschrieben wurde
+        -- Step 7: Test reading from uninitialized addresses 
+        addr_in <= "00101";  -- Address 5, unwritten
         wait for 20 ns;
         assert data_out = "0000000000000000"
         report "Nicht beschriebene Adresse 5 enthält nicht NOP" severity error;
