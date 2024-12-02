@@ -1,6 +1,8 @@
 ----------------------------------------------------------------------------------
 -- Entity: tb_pc
 -- Name: Kelly Velten
+-- Description: Testbench for the Program Counter (PC) module. 
+--This testbench validates PC operations including increment, branch, reset, and NOP
 ----------------------------------------------------------------------------------
 
 library IEEE;
@@ -47,40 +49,40 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity tb_pc is
--- Keine Ports, da es eine Testbench ist
+-- Entity declaration for the testbench, no ports as it is a testbench
 end tb_pc;
 
 architecture Behavioral of tb_pc is
 
-    -- Konstanten für Operationen
-    constant PC_OP_NOP   : STD_LOGIC_VECTOR(1 downto 0) := "00";
-    constant PC_OP_INC   : STD_LOGIC_VECTOR(1 downto 0) := "01";
-    constant PC_OP_RESET : STD_LOGIC_VECTOR(1 downto 0) := "11";
+    -- Constants for PC operations
+    constant PC_OP_NOP   : STD_LOGIC_VECTOR(1 downto 0) := "00"; --no operation
+    constant PC_OP_INC   : STD_LOGIC_VECTOR(1 downto 0) := "01"; -- increment operation
+    constant PC_OP_RESET : STD_LOGIC_VECTOR(1 downto 0) := "11"; -- reset operation
 
-    -- Komponenten-Deklaration für den PC
+    -- Component declaration for the Program Counter module
     component pc
         Port (
-            clk_in      : in STD_LOGIC;
-            pc_op_in    : in STD_LOGIC_VECTOR (1 downto 0);
-            pc_in       : in STD_LOGIC_VECTOR (15 downto 0);
-            branch_in   : in STD_LOGIC;
-            pc_out      : out STD_LOGIC_VECTOR (7 downto 0)
+            clk_in      : in STD_LOGIC; --Clock input
+            pc_op_in    : in STD_LOGIC_VECTOR (1 downto 0); --PC operation input
+            pc_in       : in STD_LOGIC_VECTOR (15 downto 0); --Input value for branch operation
+            branch_in   : in STD_LOGIC; --Branch enable signal
+            pc_out      : out STD_LOGIC_VECTOR (7 downto 0) --Output:current value of PC
         );
     end component;
 
-    -- Signale für den Test
-    signal clk_in      : STD_LOGIC := '0';
-    signal pc_op_in    : STD_LOGIC_VECTOR(1 downto 0) := PC_OP_NOP;
-    signal pc_in       : STD_LOGIC_VECTOR(15 downto 0) := X"0000";
-    signal branch_in   : STD_LOGIC := '0';
-    signal pc_out      : STD_LOGIC_VECTOR(7 downto 0);
+    -- Signal declarations for testbench inputs and outputs
+    signal clk_in      : STD_LOGIC := '0'; --Clock signal
+    signal pc_op_in    : STD_LOGIC_VECTOR(1 downto 0) := PC_OP_NOP; --PC operations input
+    signal pc_in       : STD_LOGIC_VECTOR(15 downto 0) := X"0000"; --PC input for branching
+    signal branch_in   : STD_LOGIC := '0'; --Branch enable signal
+    signal pc_out      : STD_LOGIC_VECTOR(7 downto 0); --PC output signal
 
-    -- Test-Taktperiode
+    -- Clock period for simulation
     constant clk_period : time := 10 ns;
 
 begin
 
-    -- Instanziierung des DUT (Device Under Test)
+    -- Instantiate the device under test
     uut: pc
         Port map (
             clk_in      => clk_in,
@@ -90,52 +92,52 @@ begin
             pc_out      => pc_out
         );
 
-    -- Takt-Generator
+    -- Clock generation process
     clk_process: process
     begin
         while true loop
-            clk_in <= '0';
+            clk_in <= '0'; --Clock low
             wait for clk_period / 2;
-            clk_in <= '1';
+            clk_in <= '1'; --Clock high
             wait for clk_period / 2;
         end loop;
     end process;
 
-    -- Testfälle
+    -- Test cases process
     test_process: process
     begin
-        -- Testfall 1: Initialzustand
-        wait for clk_period;
-        assert pc_out = "00000000"
+        -- Test case 1: Initial state
+        wait for clk_period; -- Wait for first clock edge
+        assert pc_out = "00000000" -- Expect PC to start at 0
         report "Initial PC value incorrect" severity error;
 
-        -- Testfall 2: Inkrementieren
-        pc_op_in <= PC_OP_INC;
+        -- Test Case 2: Increment operation
+        pc_op_in <= PC_OP_INC; -- Set operation to increment
         wait for clk_period;
-        assert pc_out = "00000001"
+        assert pc_out = "00000001" -- Expect PC to increment by 1
         report "PC increment incorrect" severity error;
 
-        -- Testfall 3: Branch (Setzen des PC)
-        branch_in <= '1';
-        pc_in <= X"0055";
+        -- Test Case 3: Branch operation
+        branch_in <= '1';  -- Enable branch
+        pc_in <= X"0055";  -- Set PC input value
         wait for clk_period;
-        branch_in <= '0';
-        assert pc_out = "01010101"
+        branch_in <= '0';  -- Disable branch
+        assert pc_out = "01010101"  -- Expect PC to branch to 0x55
         report "Branch operation incorrect" severity error;
 
-        -- Testfall 4: Reset
-        pc_op_in <= PC_OP_RESET;
+        -- Test Case 4: Reset operation
+        pc_op_in <= PC_OP_RESET;  -- Set operation to reset
         wait for clk_period;
-        assert pc_out = "00000000"
+        assert pc_out = "00000000"  -- Expect PC to reset to 0
         report "PC reset incorrect" severity error;
 
-        -- Testfall 5: No operation (NOP)
-        pc_op_in <= PC_OP_NOP;
+        -- Test Case 5: No operation (NOP)
+        pc_op_in <= PC_OP_NOP;  -- Set operation to NOP
         wait for clk_period;
-        assert pc_out = "00000000"
+        assert pc_out = "00000000" -- Expect PC to remain unchanged
         report "PC NOP operation incorrect" severity error;
 
-        -- Test abgeschlossen
+        -- Test complete
         report "All test cases passed" severity note;
         wait;
     end process;
