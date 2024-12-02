@@ -1,6 +1,8 @@
 ----------------------------------------------------------------------------------
 -- Entity: tb_ram
 -- Name: Kelly Velten
+-- Description: Testbench for RAM module. Validates read, write, reset, 
+--              and NOP behaviour of the RAM through various test cases.
 ----------------------------------------------------------------------------------
 
 library IEEE;
